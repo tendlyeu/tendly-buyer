@@ -1,0 +1,84 @@
+ID,Kategooria,Kasutajalugu,Persoon,Prioriteet (Must/Should/Could/Won't),Märkused/Kommentaarid
+US-01,Hankedokumendi koostamine,"Hankespetsialistina tahan kirjeldada oma hanke vajadust vabas vormis, et AI koostaks struktureeritud hankedokumendi mustandi.",B1 - Hankespetsialist,,
+US-02,Hankedokumendi koostamine,"Hankespetsialistina tahan, et AI pakuks välja sobivad hindamiskriteeriumid ja kaalud vastavalt hanke tüübile.",B1 - Hankespetsialist,,
+US-03,Hankedokumendi koostamine,"Hankejuhina tahan valida hankedokumendi mallidest (avatud, piiratud, läbirääkimistega menetlus).",B2 - Hankejuht,,
+US-04,Hankedokumendi koostamine,"Hankespetsialistina tahan, et AI genereeriks sobivad CPV koodid minu vajaduse kirjeldusest.",B1 - Hankespetsialist,,
+US-05,Hankedokumendi koostamine,"Hankespetsialistina tahan, et AI koostaks kvalifitseerimistingimused vastavalt lepingu eeldatavale maksumusele.",B1 - Hankespetsialist,,
+US-06,Hankedokumendi koostamine,"Juristina tahan, et AI tuvastaks võimalikud vastavusprobleemid hankedokumendi mustandis.",B4 - Jurist,,
+US-07,Hankedokumendi koostamine,"Hankespetsialistina tahan hankedokumenti vestluses itereerida — paludes AI-l muuta jaotisi, lisada klausleid.",B1 - Hankespetsialist,,
+US-08,Hankedokumendi koostamine,"Eelarve omanikuna tahan esitada kõrgtasemelisi vajadusi ja lasta AI-l need laiendada detailseteks spetsifikatsioonideks.",B3 - Eelarve omanik,,
+US-09,Hankedokumendi koostamine,"Hankespetsialistina tahan eksportida lõplikku hankedokumenti allalaaditava failina (DOCX/PDF) kanvaa-paneelilt.",B1 - Hankespetsialist,,
+US-10,Hankedokumendi koostamine,"Hankejuhina tahan, et AI koostaks hanke ajagraafiku vastavalt menetluse tüübile ja EL piirmääradele.",B2 - Hankejuht,,
+US-11,Kinnisvara hinnastamine,"Eelarve omanikuna tahan otsida ajaloolistest hankeandmetest kontoriruumide üürihindu ruutmeetri kohta.",B3 - Eelarve omanik,,
+US-12,Kinnisvara hinnastamine,"Hankespetsialistina tahan, et AI näitaks mulle võrreldavaid kinnisvarahankeid minu piirkonnas.",B1 - Hankespetsialist,,
+US-13,Kinnisvara hinnastamine,"Finantskontrolörina tahan näha hinnatrende aja jooksul kinnisvarateenuste osas.",B5 - Finantskontrolör,,
+US-14,Kinnisvara hinnastamine,"Hankespetsialistina tahan, et AI pakuks eeldatava maksumuse vahemiku minu kinnisvarahankele.",B1 - Hankespetsialist,,
+US-15,Kinnisvara hinnastamine,"Eelarve omanikuna tahan võrrelda avaliku ja erasektori üürihindu konkreetses asukohas.",B3 - Eelarve omanik,,
+US-16,Personali hinnastamine,"Eelarve omanikuna tahan otsida tüüpilisi tunnipalgamäärasid erinevate ametirollide jaoks riigihangetes.",B3 - Eelarve omanik,,
+US-17,Personali hinnastamine,"Hankespetsialistina tahan, et AI näitaks mulle võrreldavaid personalihankeid koos lepingumaksumuste ja meeskonna koosseisudega.",B1 - Hankespetsialist,,
+US-18,Personali hinnastamine,"Tehnilise spetsialistina tahan otsida tüüpilisi kvalifitseerimistingimusi IT-personalihangete jaoks.",B6 - Tehniline spetsialist,,
+US-19,Personali hinnastamine,"Finantskontrolörina tahan võrrelda personalikulusid riikide lõikes samade rollitüüpide jaoks.",B5 - Finantskontrolör,,
+US-20,Personali hinnastamine,"Hankespetsialistina tahan, et AI pakuks hinnaskoorimise valemit vastavalt personalitarne tüübile.",B1 - Hankespetsialist,,
+US-21,Seadmete hinnastamine,"Eelarve omanikuna tahan otsida tüüpilisi IT-seadmete kulusid riigihangetes.",B3 - Eelarve omanik,,
+US-22,Seadmete hinnastamine,"Hankespetsialistina tahan, et AI näitaks võrreldavaid seadmehankeid koos spetsifikatsioonide ja hindadega.",B1 - Hankespetsialist,,
+US-23,Seadmete hinnastamine,"Tehnilise spetsialistina tahan otsida teknilisi spetsifikatsioone sarnastes seadmehangetes.",B6 - Tehniline spetsialist,,
+US-24,Seadmete hinnastamine,"Finantskontrolörina tahan võrrelda ostu- ja liisingukulusid seadmekategooriate lõikes.",B5 - Finantskontrolör,,
+US-25,Seadmete hinnastamine,"Hankespetsialistina tahan, et AI tuvastaks liiga piiravad seadmete spetsifikatsioonid ja pakuks alternatiive.",B1 - Hankespetsialist,,
+US-26,Hinnavõrdlus,"Hankespetsialistina tahan, et AI koostaks hinnavõrdluse raporti minu planeeritud hanke jaoks.",B1 - Hankespetsialist,,
+US-27,Hinnavõrdlus,"Hankejuhina tahan näha turuanalüüsi kanvaa-artefakti koos hinnajaotuste ja konkurentsitasemetega.",B2 - Hankejuht,,
+US-28,Hinnavõrdlus,"Finantskontrolörina tahan eksportida võrdlusandmeid raportina (PDF) hanketoimikusse lisamiseks.",B5 - Finantskontrolör,,
+US-29,Hinnavõrdlus,"Eelarve omanikuna tahan, et AI hoiataks mind kui minu eelarve erineb oluliselt turuhindadest.",B3 - Eelarve omanik,,
+US-30,Hinnavõrdlus,"Hankespetsialistina tahan küsida AI-lt 'mis on õiglane hind X-i eest?' ja saada tõenduspõhine vastus.",B1 - Hankespetsialist,,
+US-31,Vastavus,"Juristina tahan, et AI valideeriks hankedokumendi vastavust EL direktiividele ja riigihangete seadusele.",B4 - Jurist,,
+US-32,Vastavus,"Hankespetsialistina tahan, et AI kontrolliks hindamiskriteeriumide proportsionaalsust lepingu maksumusega.",B1 - Hankespetsialist,,
+US-33,Vastavus,"Hankejuhina tahan, et AI hindaks eeldatavat pakkujate arvu ajalooliste andmete põhjal.",B2 - Hankejuht,,
+US-34,Vastavus,"Juristina tahan, et AI koostaks vastavuse kontrollnimekirja minu hankemenetluse jaoks.",B4 - Jurist,,
+US-35,Vastavus,"Hankespetsialistina tahan, et AI vaataks üle hindamiskriteeriumid ja tuvastaks ebanormaalsed kaalud.",B1 - Hankespetsialist,,
+US-36,AI vestlusliides,"Hankespetsialistina tahan alustada vestlust 'Mul on vaja hankida [X]' ja lasta AI-l juhtida mind kogu protsessi.",B1 - Hankespetsialist,,
+US-37,AI vestlusliides,"Eelarve omanikuna tahan küsida 'Kui palju peaksime eelarvestama?' ja saada AI vastus hankeandmetega.",B3 - Eelarve omanik,,
+US-38,AI vestlusliides,"Hankespetsialistina tahan üles laadida hankedokumendi ja paluda AI-l see üle vaadata.",B1 - Hankespetsialist,,
+US-39,AI vestlusliides,"Hankejuhina tahan, et vestlusajalugu säiliks, et saaksin naasta eelmiste sessioonide juurde.",B2 - Hankejuht,,
+US-40,AI vestlusliides,"Tehnilise spetsialistina tahan paluda AI-l koostada tehnilised spetsifikatsioonid sarnaste hangete näidete põhjal.",B6 - Tehniline spetsialist,,
+
+Küsimustiku osa,Küsimuse ID,Küsimus,Asjakohased persoonad
+Persoonad,Q1.1,"Millised neist persoonidest eksisteerivad teie organisatsioonis?",Kõik
+Persoonad,Q1.2,"Kes algatab tavaliselt uue hankeprotsessi — eelarve omanik või hankespetsialist?",B1; B3
+Persoonad,Q1.3,"Mitu inimest on tavaliselt kaasatud ühe hankedokumendi koostamisse?",Kõik
+Persoonad,Q1.4,"Kas kasutate praegu mõnda AI- või digiriista hangete koostamiseks?",Kõik
+Hankedokumendi koostamine,Q2.1,"Milline on teie praegune hankedokumendi koostamise protsess?","B1, B2"
+Hankedokumendi koostamine,Q2.2,"Millised hankedokumendi osad on kõige aeganõudvamad kirjutada?","B1, B2"
+Hankedokumendi koostamine,Q2.3,"Kas kasutate standardseid malle?","B1, B2"
+Hankedokumendi koostamine,Q2.4,"Kui sageli tuleb avaldatud hankeid parandada vigade tõttu?","B1, B2, B4"
+Hankedokumendi koostamine,Q2.5,"Kas usaldaksite AI loodud esimest mustandit?","B1, B2"
+Hankedokumendi koostamine,Q2.6,"Milliseid hankemenetlusi kasutate kõige sagedamini?","B1, B2"
+Hankedokumendi koostamine,Q2.7,"Milliseid keeli peaks hankedokumendi koostamine toetama?","B1, B2"
+Kinnisvara hinnastamine,Q3.1,"Milliseid kinnisvarahankeid te kõige sagedamini teete?","B1, B3"
+Kinnisvara hinnastamine,Q3.2,"Millised andmepunktid on kinnisvara hinnavõrdluse jaoks kõige olulisemad?","B1, B3, B5"
+Kinnisvara hinnastamine,Q3.3,"Kas kasutate praegu võrdlusandmestikku eeldatavate maksumuste seadmiseks?","B1, B3"
+Kinnisvara hinnastamine,Q3.4,"Kui kindel olete praegu eeldatavates maksumustes kinnisvarahangetele?","B1, B3, B5"
+Kinnisvara hinnastamine,Q3.5,"Kas ajaloolised hankeandmed oleksid kasulikumad kui turu-uuringud?","B1, B3"
+Personali hinnastamine,Q4.1,"Milliseid personalihankeid te teete?","B1, B3, B6"
+Personali hinnastamine,Q4.2,"Kas kasutate tunnimäärasid, päevamäärasid või lepingu kogumaksumust?","B1, B5"
+Personali hinnastamine,Q4.3,"Mis on personalihangete hinnastamise juures kõige keerulisem?","B1, B3, B5"
+Personali hinnastamine,Q4.4,"Kas peate arvestama miinimumpalga regulatsioonide või kollektiivlepingutega?","B1, B4, B5"
+Personali hinnastamine,Q4.5,"Kas teiste organisatsioonide võrdlusandmed oleksid kasulikud?","B1, B3, B5"
+Seadmete hinnastamine,Q5.1,"Milliseid seadmekategooriaid te kõige sagedamini hangite?","B1, B3, B6"
+Seadmete hinnastamine,Q5.2,"Kas tavaliselt ostate otse või kasutate liisingulepinguid?","B1, B5"
+Seadmete hinnastamine,Q5.3,"Kuidas te praegu seadmekulusid hindate?","B1, B3, B5"
+Seadmete hinnastamine,Q5.4,"Kas teil on hange vaidlustatud piiravate spetsifikatsioonide tõttu?","B1, B4"
+Seadmete hinnastamine,Q5.5,"Kas AI brändi-spetsiifilisuse kontroll oleks väärtuslik?","B1, B4, B6"
+Hinnavõrdlus,Q6.1,"Kuidas te praegu põhjendate eeldatavat lepingumaksumust?","B1, B2, B5"
+Hinnavõrdlus,Q6.2,"Kas teil on olnud hange kus eeldatav maksumus oli oluliselt vale?","B1, B2, B5"
+Hinnavõrdlus,Q6.3,"Kas automaatne võrdlus teiste riikide lepingutega oleks kasulik?","B1, B2, B3"
+Hinnavõrdlus,Q6.4,"Kui oluline on, et võrdlusandmed sisaldavad allikate viiteid?","B1, B2, B5"
+Hinnavõrdlus,Q6.5,"Kas vajate reaalajas andmeid või piisaks igakuisest uuendusest?","B1, B2"
+Vastavus,Q7.1,"Millistele hankeregulatsioonidele peate vastama?","B1, B2, B4"
+Vastavus,Q7.2,"Millised on levinumad vastavusvead teie organisatsiooni hangetes?","B1, B2, B4"
+Vastavus,Q7.3,"Kui sageli vaidlustavad pakkujad teie hankeid?","B1, B2, B4"
+Vastavus,Q7.4,"Kas kasutaksite AI vastavuskontrolli enne avaldamist?","B1, B2, B4"
+Vastavus,Q7.5,"Kas vajate tuge nii EL kui riiklike menetluste jaoks?","B1, B2, B4"
+AI vestlusliides,Q8.1,"Kas eelistaksite juhendatud töövoogu või vaba vestlust?","B1, B2, B3"
+AI vestlusliides,Q8.2,"Kui oluline on, et AI viitaks allikatele vastustes?","B1, B2, B4"
+AI vestlusliides,Q8.3,"Kas kasutaksite tööriista mobiilseadmetel või lauaarvutil?","B1, B2, B3"
+AI vestlusliides,Q8.4,"Kas AI peaks meeles pidama konteksti eelmistest sessioonidest?","B1, B2"
+AI vestlusliides,Q8.5,"Kas tahaksite jagada vestlust kolleegidega?","B1, B2, B3"

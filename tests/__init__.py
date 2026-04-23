@@ -1,0 +1,1 @@
+# Tendly Chat test suite

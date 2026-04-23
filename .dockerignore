@@ -1,0 +1,17 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+.env
+.claude/
+test-results/
+tests/
+docs/
+*.md
+!README.md
+*.png
+*.jpg
+*.gif
+*.mp4

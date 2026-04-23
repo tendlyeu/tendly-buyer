@@ -1,0 +1,84 @@
+ID,Category,User Story,Persona,Priority (Must/Should/Could/Won't),Notes/Comments
+US-01,RFP Drafting,"As a Procurement Officer, I want to describe my procurement need in natural language so that the AI generates a structured RFP draft based on best practices and regulatory requirements.",B1 - Procurement Officer,,
+US-02,RFP Drafting,"As a Procurement Officer, I want the AI to suggest appropriate evaluation criteria and weights based on the type of procurement so that I create fair and effective criteria.",B1 - Procurement Officer,,
+US-03,RFP Drafting,"As a Procurement Manager, I want to select from RFP templates (open, restricted, negotiated procedure) so that the generated RFP follows the correct procurement process.",B2 - Procurement Manager,,
+US-04,RFP Drafting,"As a Procurement Officer, I want the AI to generate appropriate CPV codes from my requirement description so that the tender is correctly classified.",B1 - Procurement Officer,,
+US-05,RFP Drafting,"As a Procurement Officer, I want the AI to draft qualification requirements based on the estimated contract value and type so that requirements are proportionate and non-discriminatory.",B1 - Procurement Officer,,
+US-06,RFP Drafting,"As a Legal Officer, I want the AI to flag potential compliance issues in the draft RFP so that I can fix them before publication.",B4 - Legal Officer,,
+US-07,RFP Drafting,"As a Procurement Officer, I want to iterate on the RFP in chat — asking the AI to modify sections, add clauses, or rephrase requirements.",B1 - Procurement Officer,,
+US-08,RFP Drafting,"As a Budget Owner, I want to provide high-level needs and have the AI expand them into detailed technical specifications.",B3 - Budget Owner,,
+US-09,RFP Drafting,"As a Procurement Officer, I want to export the finalized RFP as a downloadable document (DOCX/PDF) from the canvas panel.",B1 - Procurement Officer,,
+US-10,RFP Drafting,"As a Procurement Manager, I want the AI to generate a procurement timeline based on the procedure type and EU thresholds.",B2 - Procurement Manager,,
+US-11,Real Estate Pricing,"As a Budget Owner, I want to search historical tender data for office rental prices per m² by city and region so that I set a realistic budget.",B3 - Budget Owner,,
+US-12,Real Estate Pricing,"As a Procurement Officer, I want the AI to show me comparable real estate tenders in my region so that I understand current market rates.",B1 - Procurement Officer,,
+US-13,Real Estate Pricing,"As a Finance Controller, I want to see price trends over time for real estate services so that I can forecast costs.",B5 - Finance Controller,,
+US-14,Real Estate Pricing,"As a Procurement Officer, I want the AI to suggest an estimated value range for my real estate procurement based on location, area, duration.",B1 - Procurement Officer,,
+US-15,Real Estate Pricing,"As a Budget Owner, I want to compare public vs. private sector rental rates in a specific location.",B3 - Budget Owner,,
+US-16,Staff Pricing,"As a Budget Owner, I want to search for typical hourly/daily rates for different professional roles in public sector tenders.",B3 - Budget Owner,,
+US-17,Staff Pricing,"As a Procurement Officer, I want the AI to show me comparable staff procurement tenders with contract values and team compositions.",B1 - Procurement Officer,,
+US-18,Staff Pricing,"As a Technical Specialist, I want to search for typical qualification requirements for IT staff tenders.",B6 - Technical Specialist,,
+US-19,Staff Pricing,"As a Finance Controller, I want to compare staffing costs across countries for the same role types.",B5 - Finance Controller,,
+US-20,Staff Pricing,"As a Procurement Officer, I want the AI to suggest a price scoring formula based on the type of staff procurement.",B1 - Procurement Officer,,
+US-21,Equipment Pricing,"As a Budget Owner, I want to search for typical costs of IT equipment in public sector tenders so that I create accurate budgets.",B3 - Budget Owner,,
+US-22,Equipment Pricing,"As a Procurement Officer, I want the AI to show comparable equipment tenders with specifications and prices.",B1 - Procurement Officer,,
+US-23,Equipment Pricing,"As a Technical Specialist, I want to search for technical specifications used in similar equipment tenders so that I draft non-restrictive specifications.",B6 - Technical Specialist,,
+US-24,Equipment Pricing,"As a Finance Controller, I want to compare purchase vs. lease costs for equipment categories.",B5 - Finance Controller,,
+US-25,Equipment Pricing,"As a Procurement Officer, I want the AI to detect if my equipment specifications are too restrictive and suggest alternatives.",B1 - Procurement Officer,,
+US-26,Price Benchmarking,"As a Procurement Officer, I want the AI to generate a price benchmarking report comparing similar historical contracts by CPV code, country, and value.",B1 - Procurement Officer,,
+US-27,Price Benchmarking,"As a Procurement Manager, I want to see a market analysis canvas artifact showing price distributions and competition levels for my procurement category.",B2 - Procurement Manager,,
+US-28,Price Benchmarking,"As a Finance Controller, I want to export benchmarking data as a report (PDF) to attach to the procurement file.",B5 - Finance Controller,,
+US-29,Price Benchmarking,"As a Budget Owner, I want the AI to alert me when my estimated budget is significantly above or below the market rate.",B3 - Budget Owner,,
+US-30,Price Benchmarking,"As a Procurement Officer, I want to ask the AI 'what is a fair price for X?' and get an answer backed by actual tender data with sources.",B1 - Procurement Officer,,
+US-31,Compliance,"As a Legal Officer, I want the AI to validate that my RFP complies with EU procurement directives and national law.",B4 - Legal Officer,,
+US-32,Compliance,"As a Procurement Officer, I want the AI to check that evaluation criteria are proportionate to the contract value.",B1 - Procurement Officer,,
+US-33,Compliance,"As a Procurement Manager, I want the AI to estimate the expected number of bidders based on historical data.",B2 - Procurement Manager,,
+US-34,Compliance,"As a Legal Officer, I want the AI to generate a compliance checklist for my procurement procedure.",B4 - Legal Officer,,
+US-35,Compliance,"As a Procurement Officer, I want the AI to review my evaluation criteria and flag if the price weight is abnormal compared to similar tenders.",B1 - Procurement Officer,,
+US-36,AI Chat Integration,"As a Procurement Officer, I want to start a chat with 'I need to procure [X]' and have the AI guide me through the entire process step by step.",B1 - Procurement Officer,,
+US-37,AI Chat Integration,"As a Budget Owner, I want to ask 'How much should we budget for [X]?' and get an AI answer backed by historical tender data.",B3 - Budget Owner,,
+US-38,AI Chat Integration,"As a Procurement Officer, I want to upload an existing tender document and ask the AI to review it for completeness and compliance.",B1 - Procurement Officer,,
+US-39,AI Chat Integration,"As a Procurement Manager, I want conversation history preserved so that I can return to previous procurement planning sessions.",B2 - Procurement Manager,,
+US-40,AI Chat Integration,"As a Technical Specialist, I want to ask the AI to generate technical specifications using examples from similar successful tenders.",B6 - Technical Specialist,,
+
+Questionnaire Section,Question ID,Question,Relevant Personas
+Personas,Q1.1,"Which of these personas exist in your organization? Are there additional roles involved in procurement?",All
+Personas,Q1.2,"Who typically initiates a new procurement process — the budget owner or the procurement officer?",B1; B3
+Personas,Q1.3,"How many people are typically involved in drafting a single RFP?",All
+Personas,Q1.4,"Do you currently use any AI or digital tools for procurement drafting?",All
+RFP Drafting,Q2.1,"What is your current process for drafting an RFP? How long does it take from requirements to publication?","B1, B2"
+RFP Drafting,Q2.2,"Which sections of an RFP are most time-consuming to write?","B1, B2"
+RFP Drafting,Q2.3,"Do you use standardized templates? Organization-specific or national?","B1, B2"
+RFP Drafting,Q2.4,"How often do published tenders need to be corrected due to errors in the RFP?","B1, B2, B4"
+RFP Drafting,Q2.5,"Would you trust an AI-generated first draft or prefer AI as an assistant?","B1, B2"
+RFP Drafting,Q2.6,"What procurement procedures do you use most frequently?","B1, B2"
+RFP Drafting,Q2.7,"What languages should the RFP drafting support?","B1, B2"
+Real Estate Pricing,Q3.1,"What types of real estate procurements do you handle most often?","B1, B3"
+Real Estate Pricing,Q3.2,"What data points are most important for real estate price benchmarking?","B1, B3, B5"
+Real Estate Pricing,Q3.3,"Do you currently use benchmarking data for setting estimated values in real estate tenders?","B1, B3"
+Real Estate Pricing,Q3.4,"How confident are you in the estimated values you currently set for real estate tenders?","B1, B3, B5"
+Real Estate Pricing,Q3.5,"Would historical tender data be more useful than market surveys?","B1, B3"
+Staff Pricing,Q4.1,"What types of staff/personnel procurements do you handle?","B1, B3, B6"
+Staff Pricing,Q4.2,"Do you use hourly rates, daily rates, or total contract value for staff procurements?","B1, B5"
+Staff Pricing,Q4.3,"What is the most challenging aspect of pricing staff tenders?","B1, B3, B5"
+Staff Pricing,Q4.4,"Do you need to comply with minimum wage regulations or collective agreements?","B1, B4, B5"
+Staff Pricing,Q4.5,"Would benchmarking data from won contracts in other public sector organizations be useful?","B1, B3, B5"
+Equipment Pricing,Q5.1,"What equipment categories do you procure most often?","B1, B3, B6"
+Equipment Pricing,Q5.2,"Do you typically purchase outright or use leasing/rental agreements?","B1, B5"
+Equipment Pricing,Q5.3,"How do you currently estimate equipment costs?","B1, B3, B5"
+Equipment Pricing,Q5.4,"Have you ever had a tender challenged for overly restrictive specifications?","B1, B4"
+Equipment Pricing,Q5.5,"Would an AI tool that checks specifications for brand-specificity be valuable?","B1, B4, B6"
+Price Benchmarking,Q6.1,"How do you currently justify the estimated contract value in your procurements?","B1, B2, B5"
+Price Benchmarking,Q6.2,"Have you ever had a procurement where the estimated value was significantly wrong?","B1, B2, B5"
+Price Benchmarking,Q6.3,"Would you find value in automated benchmarking against similar contracts in other countries?","B1, B2, B3"
+Price Benchmarking,Q6.4,"How important is it that price benchmarking data includes source references?","B1, B2, B5"
+Price Benchmarking,Q6.5,"Do you need benchmarking data in real-time or would monthly updates suffice?","B1, B2"
+Compliance,Q7.1,"Which procurement regulations do you need to comply with?","B1, B2, B4"
+Compliance,Q7.2,"What are the most common compliance errors in your organization's procurements?","B1, B2, B4"
+Compliance,Q7.3,"How often are your procurements challenged by bidders?","B1, B2, B4"
+Compliance,Q7.4,"Would you use an AI compliance checker before publishing a tender?","B1, B2, B4"
+Compliance,Q7.5,"Do you need support for both above-threshold (EU) and below-threshold (national) procedures?","B1, B2, B4"
+AI Chat Integration,Q8.1,"Would you prefer a step-by-step guided workflow or a freeform chat?","B1, B2, B3"
+AI Chat Integration,Q8.2,"How important is it that the AI cites sources in its answers?","B1, B2, B4"
+AI Chat Integration,Q8.3,"Would you use this tool on mobile devices or primarily on desktop?","B1, B2, B3"
+AI Chat Integration,Q8.4,"Should the AI remember context from previous procurement planning sessions?","B1, B2"
+AI Chat Integration,Q8.5,"Would you want to share a chat session with colleagues for collaborative planning?","B1, B2, B3"
