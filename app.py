@@ -127,11 +127,11 @@ app, rt = fast_app(
 register_routes(app, chat_service)
 
 # Add session middleware (same secret as main tendly app for shared auth)
-app.add_middleware(SessionMiddleware, secret_key="tendly-secret-key-change-in-production")
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET", "tendly-dev-secret-key"))
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5002)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5004)))

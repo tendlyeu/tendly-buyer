@@ -5,6 +5,7 @@ import os
 from typing import Optional
 
 SUPPORTED_LANGUAGES = ["et", "en", "lv", "lt", "pl", "fr"]
+BETA_LANGUAGES = ["et", "en"]
 DEFAULT_LANGUAGE = "et"
 LANGUAGE_COOKIE = "tendly_chat_lang"
 
@@ -70,11 +71,11 @@ def get_language_from_request(request) -> str:
     """Extract language from cookie or query param."""
     # Check query param first
     lang = request.query_params.get("lang")
-    if lang and lang in SUPPORTED_LANGUAGES:
+    if lang and lang in BETA_LANGUAGES:
         return lang
     # Check cookie
     lang = request.cookies.get(LANGUAGE_COOKIE)
-    if lang and lang in SUPPORTED_LANGUAGES:
+    if lang and lang in BETA_LANGUAGES:
         return lang
     return DEFAULT_LANGUAGE
 

@@ -51,12 +51,12 @@ def register_api_routes(rt, chat_service):
                 yield f"event: error\ndata: {json.dumps({'error': 'Empty message'})}\n\n"
             return StreamingResponse(empty_stream(), media_type="text/event-stream")
 
-        if not conversation_id:
-            conversation_id = chat_service.create_conversation()
-
         # Get auth for logging
         auth = get_auth_from_request(request)
         user_email = auth.get('email') if auth else None
+
+        if not conversation_id:
+            conversation_id = chat_service.create_conversation(user_email=user_email)
 
         # Check rate limits
         rate_result = check_rate_limit(request, user_email)
@@ -113,11 +113,15 @@ def register_api_routes(rt, chat_service):
 
     @rt("/api/conversations")
     def get(request):
-        return chat_service.get_conversations()
+        auth = get_auth_from_request(request)
+        user_email = auth.get('email') if auth else None
+        return chat_service.get_conversations(user_email=user_email)
 
     @rt("/api/conversations/new")
     def post(request):
-        cid = chat_service.create_conversation()
+        auth = get_auth_from_request(request)
+        user_email = auth.get('email') if auth else None
+        cid = chat_service.create_conversation(user_email=user_email)
         return {"conversation_id": cid}
 
     @rt("/api/conversations/{conversation_id}")

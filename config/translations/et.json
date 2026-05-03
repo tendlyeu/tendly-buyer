@@ -57,7 +57,21 @@
     "field_fiscal_year": "Eelarveaasta",
     "field_method": "Hankemenetlus",
     "cancel": "Tühista",
-    "create": "Loo plaan"
+    "create": "Loo plaan",
+    "documents_title": "Dokumendid",
+    "upload_document": "Laadi dokument üles",
+    "document_title_label": "Dokumendi pealkiri",
+    "no_documents": "Dokumendid pole veel üles laetud",
+    "deadline_label": "Esitamise tähtaeg",
+    "criteria_title": "Hindamiskriteeriumid",
+    "add_criterion": "Lisa kriteerium",
+    "criterion_name": "Kriteeriumi nimi",
+    "criterion_weight": "Kaal %",
+    "requirements_title": "Nõuded",
+    "add_requirement": "Lisa nõue",
+    "requirement_type": "Tüüp",
+    "mandatory": "Kohustuslik",
+    "preferred": "Soovitav"
   },
   "documents": {
     "page_title": "Dokumendid - Tendly Hankija",
@@ -91,7 +105,7 @@
   },
   "welcome": {
     "title": "Tere tulemast Tendly vestlusesse",
-    "subtitle": "Teie AI-assistent riigihanke teabe jaoks. Otsige hankeid, analüüsige võimalusi ja saage ülevaade mitmest riigist.",
+    "subtitle": "Teie AI-assistent riigihanke teabe jaoks. Otsige hankeid, analüüsige võimalusi ja saage ülevaade Eestist ja Suurbritanniast.",
     "suggestion_1_title": "Otsi hankeid",
     "suggestion_1_text": "IT-hanked Eestis",
     "suggestion_2_title": "Avasta turge",
@@ -113,7 +127,7 @@
     "you": "Teie",
     "tendly_ai": "Tendly AI",
     "stream_error": "Vabandust, midagi läks valesti. Palun proovige uuesti.",
-    "disclaimer": "Tendly Chat otsib 6 riigist. Tulemused on informatiivsel eesmärgil.",
+    "disclaimer": "Tendly Chat otsib Eestist ja Suurbritanniast. Tulemused on informatiivsel eesmärgil.",
     "enter_to_send": "saatmiseks",
     "copy": "Kopeeri",
     "copied": "Kopeeritud",
@@ -167,6 +181,18 @@
     "saved": "Salvestatud",
     "save": "Salvesta"
   },
+  "canvas": {
+    "tender_detail": "Hanke üksikasjad",
+    "competitor_intel": "Konkurentide analüüs",
+    "tender_comparison": "Hangete võrdlus",
+    "risk_analysis": "Riskianalüüs",
+    "winning_strategy": "Võidustrateegia",
+    "gap_analysis": "Lünkade analüüs",
+    "requirements": "Nõuded",
+    "price_benchmark": "Hinna võrdlus",
+    "rfp_draft": "Hankeplaani mustand",
+    "close": "Sulge paneel"
+  },
   "language": {
     "switch": "Keel"
   },
@@ -189,12 +215,42 @@
     "login_error_inactive": "Sinu konto on inaktiivne. Palun võta ühendust toega.",
     "no_account": "Pole kontot?",
     "back_to_chat": "Tagasi vestlusse",
-    "logout": "Logi välja"
+    "logout": "Logi välja",
+    "signup_title": "Loo oma konto",
+    "signup_subtitle": "Liitu Tendly Buyeriga, et hallata oma hankeid",
+    "name_label": "Täisnimi",
+    "name_placeholder": "Sisestage oma nimi",
+    "company_label": "Ettevõte / Organisatsioon",
+    "company_placeholder": "Sisestage ettevõtte nimi",
+    "confirm_password_label": "Kinnitage parool",
+    "confirm_password_placeholder": "Sisestage parool uuesti",
+    "password_mismatch": "Paroolid ei kattu",
+    "email_exists": "Selle e-posti aadressiga konto on juba olemas",
+    "signup_submit": "Loo konto",
+    "have_account": "Kas teil on juba konto?",
+    "signup_failed": "Konto loomine ebaõnnestus. Proovige uuesti."
   },
   "pipeline": {
     "saved": "Salvestatud torujuhtmesse",
     "removed": "Eemaldatud torujuhtmest",
     "save_error": "Hanke salvestamine ebaõnnestus"
+  },
+  "review": {
+    "title": "AI dokumendi ülevaade",
+    "run_review": "Käivita AI ülevaade",
+    "rerun_review": "Käivita uuesti",
+    "analyzing": "Dokumentide analüüsimine...",
+    "quality_score": "Kvaliteet",
+    "completeness": "Täielikkus",
+    "compliance": "Vastavus",
+    "clarity": "Selgus",
+    "issues": "Leitud probleemid",
+    "missing": "Puuduvad osad",
+    "suggestions": "Parandusettepanekud",
+    "no_documents": "Laadige esmalt dokumendid üles",
+    "summary": "Kokkuvõte",
+    "reviewed_at": "Viimati üle vaadatud",
+    "documents_analyzed": "dokumenti analüüsitud"
   },
   "upgrade": {
     "anon_title": "Sõnumite limiit täis",

@@ -53,7 +53,11 @@ def _page_shell(title_key, language, auth, body_content, active_page="dashboard"
         Body(
             Div(
                 Button(_raw(_ICON_MENU), cls="hamburger-btn", onclick="toggleSidebar()"),
-                Span(f"{t('app.name', language)} {t('app.buyer_badge', language)}", style="font-size:15px;font-weight:600;color:#111827;"),
+                Span(
+                    f"{t('app.name', language)} {t('app.buyer_badge', language)} ",
+                    Span("BETA", cls="logo-badge-beta"),
+                    style="font-size:15px;font-weight:600;color:#111827;display:flex;align-items:center;gap:6px;",
+                ),
                 cls="mobile-header",
             ),
             Div(cls="mobile-overlay", onclick="closeSidebar()"),

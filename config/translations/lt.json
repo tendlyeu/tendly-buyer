@@ -11,7 +11,7 @@
   },
   "welcome": {
     "title": "Sveiki atvykę į Tendly pokalbį",
-    "subtitle": "Jūsų AI asistentas viešųjų pirkimų žvalgybai. Ieškokite konkursų, analizuokite galimybes ir gaukite įžvalgas iš kelių šalių.",
+    "subtitle": "Jūsų AI asistentas viešųjų pirkimų žvalgybai. Ieškokite konkursų, analizuokite galimybes ir gaukite įžvalgas iš Estijos ir Jungtinės Karalystės.",
     "suggestion_1_title": "Ieškoti konkursų",
     "suggestion_1_text": "IT konkursai Estijoje",
     "suggestion_2_title": "Tyrinėti rinkas",
@@ -33,7 +33,7 @@
     "you": "Jūs",
     "tendly_ai": "Tendly AI",
     "stream_error": "Atsiprašome, įvyko klaida. Bandykite dar kartą.",
-    "disclaimer": "Tendly Chat ieško 6 šalyse. Rezultatai yra tik informacinio pobūdžio.",
+    "disclaimer": "Tendly Chat ieško Estijoje ir Jungtinėje Karalystėje. Rezultatai yra tik informacinio pobūdžio.",
     "enter_to_send": "siųsti",
     "copy": "Kopijuoti",
     "copied": "Nukopijuota",

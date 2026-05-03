@@ -1,7 +1,7 @@
 """Language switcher component."""
 
 from fasthtml.common import *
-from config.i18n import SUPPORTED_LANGUAGES, LANGUAGE_INFO
+from config.i18n import BETA_LANGUAGES, LANGUAGE_INFO
 
 
 def language_switcher(current_language="en"):
@@ -9,7 +9,7 @@ def language_switcher(current_language="en"):
     current = LANGUAGE_INFO.get(current_language, LANGUAGE_INFO["en"])
 
     options = []
-    for lang_code in SUPPORTED_LANGUAGES:
+    for lang_code in BETA_LANGUAGES:
         info = LANGUAGE_INFO[lang_code]
         options.append(
             Option(

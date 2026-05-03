@@ -11,7 +11,7 @@
   },
   "welcome": {
     "title": "Bienvenue sur Tendly Chat",
-    "subtitle": "Votre assistant IA pour l'intelligence des marchés publics. Recherchez des appels d'offres, analysez les opportunités et obtenez des informations de plusieurs pays.",
+    "subtitle": "Votre assistant IA pour l'intelligence des marchés publics. Recherchez des appels d'offres, analysez les opportunités et obtenez des informations d'Estonie et du Royaume-Uni.",
     "suggestion_1_title": "Rechercher des marchés",
     "suggestion_1_text": "Marchés IT en Estonie",
     "suggestion_2_title": "Explorer les marchés",
@@ -33,7 +33,7 @@
     "you": "Vous",
     "tendly_ai": "Tendly AI",
     "stream_error": "Désolé, une erreur s'est produite. Veuillez réessayer.",
-    "disclaimer": "Tendly Chat recherche dans 6 pays. Les résultats sont à titre informatif.",
+    "disclaimer": "Tendly Chat recherche en Estonie et au Royaume-Uni. Les résultats sont à titre informatif.",
     "enter_to_send": "pour envoyer",
     "copy": "Copier",
     "copied": "Copié",

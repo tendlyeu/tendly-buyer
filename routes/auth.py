@@ -5,7 +5,7 @@ import bcrypt
 from starlette.responses import RedirectResponse, HTMLResponse
 from fasthtml.common import *
 
-from core.database import get_user, get_tendly_user
+from core.database import get_user, get_tendly_user, create_tendly_user
 from config.i18n import t, get_language_from_request
 
 
@@ -70,6 +70,56 @@ def register_auth_routes(rt, chat_service):
 
         return RedirectResponse(url="/", status_code=302)
 
+    @rt("/signup")
+    def get(request):
+        language = get_language_from_request(request)
+        # Check if already logged in
+        auth = request.session.get("auth")
+        if auth and auth.get("email"):
+            return RedirectResponse(url="/", status_code=302)
+
+        error = request.query_params.get("error", "")
+        return _signup_page(language, error)
+
+    @rt("/api/auth/signup")
+    async def post(request):
+        language = get_language_from_request(request)
+        try:
+            data = await request.form()
+            name = data.get("name", "").strip()
+            email = data.get("email", "").strip().lower()
+            company = data.get("company", "").strip()
+            password = data.get("password", "")
+            confirm_password = data.get("confirm_password", "")
+        except Exception:
+            return RedirectResponse(url="/signup?error=failed", status_code=302)
+
+        if not name or not email or not password or not confirm_password:
+            return RedirectResponse(url="/signup?error=missing", status_code=302)
+
+        # Basic email format validation
+        if "@" not in email or "." not in email.split("@")[-1]:
+            return RedirectResponse(url="/signup?error=missing", status_code=302)
+
+        if password != confirm_password:
+            return RedirectResponse(url="/signup?error=password_mismatch", status_code=302)
+
+        # Check if email already exists
+        existing = get_tendly_user(email)
+        if existing:
+            return RedirectResponse(url="/signup?error=email_exists", status_code=302)
+
+        # Hash password and create user
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        success = create_tendly_user(email, password_hash, name, role='buyer', company=company)
+
+        if not success:
+            return RedirectResponse(url="/signup?error=failed", status_code=302)
+
+        # Set session
+        request.session["auth"] = {"email": email, "name": name, "role": "buyer"}
+        return RedirectResponse(url="/", status_code=302)
+
     @rt("/logout")
     def get(request):
         request.session.pop("auth", None)
@@ -96,6 +146,7 @@ def _login_page(language, error=""):
                         Div("T", cls="login-logo-mark"),
                         Span("Tendly", cls="login-logo-text"),
                         Span(t("app.chat", language), cls="login-logo-badge"),
+                        Span("BETA", cls="login-logo-badge-beta"),
                         cls="login-logo",
                     ),
                     H1(t("auth.login_title", language), cls="login-heading"),
@@ -143,9 +194,7 @@ def _login_page(language, error=""):
                         Span(t("auth.no_account", language)),
                         A(
                             t("auth.signup_button", language),
-                            href="https://tendly.eu/signup",
-                            target="_blank",
-                            rel="noopener",
+                            href="/signup",
                             cls="login-signup-link",
                         ),
                         cls="login-footer-text",
@@ -163,12 +212,133 @@ def _login_page(language, error=""):
     )
 
 
+def _signup_page(language, error=""):
+    """Render a standalone signup page matching the login page aesthetic."""
+    error_html = ""
+    if error == "missing":
+        error_html = t("auth.login_error_missing", language)
+    elif error == "password_mismatch":
+        error_html = t("auth.password_mismatch", language)
+    elif error == "email_exists":
+        error_html = t("auth.email_exists", language)
+    elif error == "failed":
+        error_html = t("auth.signup_failed", language)
+
+    return (
+        Title(t("auth.signup_title", language)),
+        Style(_LOGIN_CSS),
+        Body(
+            Div(
+                Div(
+                    Div(
+                        Div("T", cls="login-logo-mark"),
+                        Span("Tendly", cls="login-logo-text"),
+                        Span(t("app.buyer_badge", language), cls="login-logo-badge"),
+                        Span("BETA", cls="login-logo-badge-beta"),
+                        cls="login-logo",
+                    ),
+                    H1(t("auth.signup_title", language), cls="login-heading"),
+                    P(t("auth.signup_subtitle", language), cls="login-subtext"),
+                    Div(
+                        Span(error_html, cls="login-error-text"),
+                        cls="login-error",
+                    ) if error_html else None,
+                    Form(
+                        Div(
+                            Label(t("auth.name_label", language), cls="login-label", _for="name"),
+                            Input(
+                                type="text",
+                                name="name",
+                                id="name",
+                                placeholder=t("auth.name_placeholder", language),
+                                required=True,
+                                autofocus=True,
+                                cls="login-input",
+                            ),
+                            cls="login-field",
+                        ),
+                        Div(
+                            Label(t("auth.email_label", language), cls="login-label", _for="email"),
+                            Input(
+                                type="email",
+                                name="email",
+                                id="email",
+                                placeholder=t("auth.email_placeholder", language),
+                                required=True,
+                                cls="login-input",
+                            ),
+                            cls="login-field",
+                        ),
+                        Div(
+                            Label(t("auth.company_label", language), cls="login-label", _for="company"),
+                            Input(
+                                type="text",
+                                name="company",
+                                id="company",
+                                placeholder=t("auth.company_placeholder", language),
+                                required=True,
+                                cls="login-input",
+                            ),
+                            cls="login-field",
+                        ),
+                        Div(
+                            Label(t("auth.password_label", language), cls="login-label", _for="password"),
+                            Input(
+                                type="password",
+                                name="password",
+                                id="password",
+                                placeholder=t("auth.password_placeholder", language),
+                                required=True,
+                                cls="login-input",
+                            ),
+                            cls="login-field",
+                        ),
+                        Div(
+                            Label(t("auth.confirm_password_label", language), cls="login-label", _for="confirm_password"),
+                            Input(
+                                type="password",
+                                name="confirm_password",
+                                id="confirm_password",
+                                placeholder=t("auth.confirm_password_placeholder", language),
+                                required=True,
+                                cls="login-input",
+                            ),
+                            cls="login-field",
+                        ),
+                        Button(
+                            t("auth.signup_submit", language),
+                            type="submit",
+                            cls="login-submit-btn",
+                        ),
+                        action="/api/auth/signup",
+                        method="post",
+                        cls="login-form",
+                    ),
+                    Div(
+                        Span(t("auth.have_account", language)),
+                        A(
+                            t("auth.login_button", language),
+                            href="/login",
+                            cls="login-signup-link",
+                        ),
+                        cls="login-footer-text",
+                    ),
+                    cls="login-card",
+                ),
+                cls="login-page",
+            ),
+        ),
+    )
+
+
 _LOGIN_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; }
 body {
     height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: #f9fafb;
     color: #111827;
     line-height: 1.5;
@@ -219,6 +389,16 @@ body {
     background: #f5f3ff;
     padding: 2px 6px;
     border-radius: 4px;
+    text-transform: uppercase;
+}
+.login-logo-badge-beta {
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
 }
 .login-heading {

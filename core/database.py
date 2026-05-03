@@ -499,10 +499,9 @@ def get_tender_data_for_save(tender_id: int) -> dict:
 # TENDLY SCHEMA — writable database for buyer tools
 # ============================================================
 
-TENDLY_DB_URL = os.environ.get(
-    "TENDLY_DB_URL",
-    "postgresql://finespresso:mlfpass2026@72.62.114.124:5432/finespresso_db",
-)
+TENDLY_DB_URL = os.environ.get("TENDLY_DB_URL")
+if not TENDLY_DB_URL:
+    TENDLY_DB_URL = "postgresql://localhost:5432/tendly_buyer"
 
 _tendly_engine = None
 _TendlySession = None
@@ -519,6 +518,9 @@ def _get_tendly_engine():
             pool_size=5,
             max_overflow=10,
             echo=False,
+            connect_args={
+                "connect_timeout": 30,
+            },
         )
         _TendlySession = sessionmaker(bind=_tendly_engine)
     return _tendly_engine

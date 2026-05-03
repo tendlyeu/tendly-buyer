@@ -1,0 +1,27 @@
+[Unit]
+Description=Tendly Buyer Portal
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=exec
+User=tendly
+Group=tendly
+WorkingDirectory=/opt/tendly-buyer
+EnvironmentFile=/opt/tendly-buyer/.env.production
+ExecStart=/opt/tendly-buyer/venv/bin/gunicorn app:app \
+    --bind 127.0.0.1:5002 \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --timeout 300 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --access-logfile /var/log/tendly-buyer/access.log \
+    --error-logfile /var/log/tendly-buyer/error.log
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

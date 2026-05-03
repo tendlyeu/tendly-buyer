@@ -1,3 +1,5 @@
+# For VM deployment (GCP Compute Engine), use deploy-vm.sh instead of this Dockerfile.
+# This Dockerfile is used for local development and Docker-based deployments.
 FROM python:3.13-slim
 
 WORKDIR /app

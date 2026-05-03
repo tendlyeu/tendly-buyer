@@ -34,7 +34,7 @@ def _get_user_plan(email):
     """Look up user subscription plan from the database."""
     try:
         from sqlalchemy import text
-        from database import get_session
+        from core.database import get_session
 
         db = get_session()
         try:

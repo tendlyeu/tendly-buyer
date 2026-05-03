@@ -17,6 +17,8 @@ import logging
 
 from core.llm_client import LLMClient, LLMProvider
 from core.url_utils import get_tendly_url
+from core.database import get_tendly_session, ChatContext
+from sqlalchemy.orm.attributes import flag_modified
 
 # Import tools to trigger registration with the global registry
 import tools.search_tenders
@@ -363,48 +365,83 @@ class TendlyChatService:
     """Orchestrates conversations, query understanding, tool dispatch, and streaming responses."""
 
     def __init__(self):
-        self.conversations: Dict[str, Dict] = {}
         self.llm = LLMClient(provider=LLMProvider.GEMINI, temperature=0.3)
 
     # ======================================================================
-    # Conversation management
+    # Conversation management (persisted to PostgreSQL via ChatContext model)
     # ======================================================================
 
-    def create_conversation(self) -> str:
+    def create_conversation(self, user_email=None) -> str:
         cid = str(uuid.uuid4())
-        self.conversations[cid] = {
-            "messages": [],
-            "artifacts": [],
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "title": "New conversation",
-        }
+        session = get_tendly_session()
+        try:
+            ctx = ChatContext(
+                id=str(uuid.uuid4()),
+                conversation_id=cid,
+                user_email=user_email,
+                title="New conversation",
+                messages=[],
+                artifacts=[],
+            )
+            session.add(ctx)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
         return cid
 
-    def get_conversations(self) -> List[Dict]:
-        result = []
-        for cid, conv in self.conversations.items():
-            result.append({
-                "id": cid,
-                "title": conv["title"],
-                "created_at": conv["created_at"],
-                "message_count": len(conv["messages"]),
-            })
-        result.sort(key=lambda c: c["created_at"], reverse=True)
-        return result
+    def get_conversations(self, user_email=None) -> List[Dict]:
+        session = get_tendly_session()
+        try:
+            q = session.query(ChatContext)
+            if user_email:
+                q = q.filter(ChatContext.user_email == user_email)
+            q = q.order_by(ChatContext.created_at.desc())
+            result = []
+            for ctx in q.all():
+                msgs = ctx.messages or []
+                result.append({
+                    "id": ctx.conversation_id,
+                    "title": ctx.title or "New conversation",
+                    "created_at": ctx.created_at.isoformat() if ctx.created_at else "",
+                    "message_count": len(msgs),
+                })
+            return result
+        finally:
+            session.close()
 
     def get_conversation(self, conversation_id: str) -> Optional[Dict]:
-        conv = self.conversations.get(conversation_id)
-        if conv is None:
-            return None
-        return {
-            "id": conversation_id,
-            "title": conv["title"],
-            "created_at": conv["created_at"],
-            "messages": conv["messages"],
-        }
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            if ctx is None:
+                return None
+            return {
+                "id": ctx.conversation_id,
+                "title": ctx.title or "New conversation",
+                "created_at": ctx.created_at.isoformat() if ctx.created_at else "",
+                "messages": ctx.messages or [],
+            }
+        finally:
+            session.close()
 
     def delete_conversation(self, conversation_id: str) -> bool:
-        return self.conversations.pop(conversation_id, None) is not None
+        session = get_tendly_session()
+        try:
+            deleted = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).delete(synchronize_session='fetch')
+            session.commit()
+            return deleted > 0
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     # ======================================================================
     # Artifact management
@@ -413,25 +450,45 @@ class TendlyChatService:
     def store_artifact(self, conversation_id: str, artifact_type: str,
                        artifact_id: str, artifact_data: Dict):
         """Store an artifact in the conversation for later retrieval."""
-        conv = self.conversations.get(conversation_id)
-        if not conv:
-            return
-        conv.setdefault("artifacts", []).append({
-            "type": artifact_type,
-            "id": artifact_id,
-            "data": artifact_data,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            if not ctx:
+                return
+            artifacts = list(ctx.artifacts or [])
+            artifacts.append({
+                "type": artifact_type,
+                "id": artifact_id,
+                "data": artifact_data,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            ctx.artifacts = artifacts
+            flag_modified(ctx, 'artifacts')
+            ctx.updated_at = datetime.utcnow()
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def get_artifact(self, conversation_id: str, artifact_id: str) -> Optional[Dict]:
         """Retrieve a stored artifact."""
-        conv = self.conversations.get(conversation_id)
-        if not conv:
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            if not ctx:
+                return None
+            for art in (ctx.artifacts or []):
+                if art["id"] == artifact_id:
+                    return art
             return None
-        for art in conv.get("artifacts", []):
-            if art["id"] == artifact_id:
-                return art
-        return None
+        finally:
+            session.close()
 
     # ======================================================================
     # Tool dispatch
@@ -532,33 +589,80 @@ class TendlyChatService:
     # Streaming message processing (main entry point)
     # ======================================================================
 
+    def _load_conversation(self, conversation_id: str):
+        """Load a ChatContext row, returning (session, ctx).
+
+        Caller is responsible for closing the session.
+        """
+        session = get_tendly_session()
+        ctx = session.query(ChatContext).filter(
+            ChatContext.conversation_id == conversation_id
+        ).first()
+        return session, ctx
+
+    def _append_message(self, conversation_id: str, message_dict: Dict):
+        """Append a message dict to the ChatContext.messages JSONB column."""
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            if not ctx:
+                return
+            messages = list(ctx.messages or [])
+            messages.append(message_dict)
+            ctx.messages = messages
+            flag_modified(ctx, 'messages')
+            ctx.updated_at = datetime.utcnow()
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     async def process_message(
         self, conversation_id: str, user_message: str
     ) -> AsyncGenerator[str, None]:
         """Process a user message and yield SSE-formatted chunks."""
-        # Ensure conversation exists
-        if conversation_id not in self.conversations:
-            self.conversations[conversation_id] = {
-                "messages": [],
-                "artifacts": [],
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "title": "New conversation",
-            }
+        # Ensure conversation exists in DB
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            if not ctx:
+                ctx = ChatContext(
+                    id=str(uuid.uuid4()),
+                    conversation_id=conversation_id,
+                    title="New conversation",
+                    messages=[],
+                    artifacts=[],
+                )
+                session.add(ctx)
+                session.commit()
 
-        conv = self.conversations[conversation_id]
+            conv_title = ctx.title or "New conversation"
+            conv_messages = list(ctx.messages or [])
 
-        # Auto-title from first user message
-        if conv["title"] == "New conversation" and not conv["messages"]:
-            conv["title"] = (user_message[:80] + "...") if len(user_message) > 80 else user_message
-            yield _sse_event("title", {"title": conv["title"]})
+            # Auto-title from first user message
+            if conv_title == "New conversation" and not conv_messages:
+                conv_title = (user_message[:80] + "...") if len(user_message) > 80 else user_message
+                ctx.title = conv_title
+                session.commit()
+                yield _sse_event("title", {"title": conv_title})
+        finally:
+            session.close()
 
         # Store user message
-        conv["messages"].append({
+        user_msg_dict = {
             "role": "user",
             "content": user_message,
             "tenders": [],
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        }
+        self._append_message(conversation_id, user_msg_dict)
+        conv_messages.append(user_msg_dict)
 
         try:
             # --- Stage 1: Query understanding ---
@@ -595,7 +699,7 @@ class TendlyChatService:
             yield _sse_event("status", {"status": "generating", "message": "Generating response..."})
             response_text = await self._generate_response(
                 user_message, query_info, tool_result.tenders,
-                conv["messages"], intent,
+                conv_messages, intent,
                 companies=tool_result.companies,
             )
 
@@ -603,12 +707,13 @@ class TendlyChatService:
             yield _sse_event("text", {"content": response_text})
 
             # Store assistant message
-            conv["messages"].append({
+            assistant_msg = {
                 "role": "assistant",
                 "content": response_text,
                 "tenders": tool_result.tenders,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            }
+            self._append_message(conversation_id, assistant_msg)
 
             yield _sse_event("done", {})
 
@@ -622,12 +727,13 @@ class TendlyChatService:
             )
             yield _sse_event("error", {"message": error_msg})
 
-            conv["messages"].append({
+            error_msg_dict = {
                 "role": "assistant",
                 "content": error_msg,
                 "tenders": [],
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            }
+            self._append_message(conversation_id, error_msg_dict)
 
     # Non-streaming convenience method (for API/testing)
     async def process_message_sync(self, conversation_id: str, user_message: str) -> Dict:
@@ -645,7 +751,7 @@ class TendlyChatService:
                     elif event_type == "tenders":
                         tenders = data.get("tenders", [])
 
-        conv = self.conversations.get(conversation_id, {})
+        conv = self.get_conversation(conversation_id) or {}
         return {
             "response": response_text,
             "tenders": tenders,

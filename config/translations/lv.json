@@ -11,7 +11,7 @@
   },
   "welcome": {
     "title": "Laipni lūdzam Tendly čatā",
-    "subtitle": "Jūsu AI asistents valsts iepirkumu izlūkošanai. Meklējiet iepirkumus, analizējiet iespējas un iegūstiet ieskatus no vairākām valstīm.",
+    "subtitle": "Jūsu AI asistents valsts iepirkumu izlūkošanai. Meklējiet iepirkumus, analizējiet iespējas un iegūstiet ieskatus no Igaunijas un Lielbritānijas.",
     "suggestion_1_title": "Meklēt iepirkumus",
     "suggestion_1_text": "IT iepirkumi Igaunijā",
     "suggestion_2_title": "Izpētīt tirgus",
@@ -33,7 +33,7 @@
     "you": "Jūs",
     "tendly_ai": "Tendly AI",
     "stream_error": "Atvainojiet, radās kļūda. Lūdzu, mēģiniet vēlreiz.",
-    "disclaimer": "Tendly Chat meklē 6 valstīs. Rezultāti ir tikai informatīviem nolūkiem.",
+    "disclaimer": "Tendly Chat meklē Igaunijā un Lielbritānijā. Rezultāti ir tikai informatīviem nolūkiem.",
     "enter_to_send": "lai nosūtītu",
     "copy": "Kopēt",
     "copied": "Nokopēts",
