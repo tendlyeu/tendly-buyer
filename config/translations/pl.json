@@ -126,5 +126,18 @@
     "feature_pipeline": "Zapisz przetargi w pipeline",
     "view_plans": "Zobacz plany",
     "dismiss": "Może później"
+  },
+  "form": {
+    "title": "Tytuł",
+    "type": "Typ",
+    "content_notes": "Treść / Notatki",
+    "name": "Imię",
+    "email": "E-mail",
+    "role": "Rola",
+    "specialty": "Specjalizacja",
+    "document_title_placeholder": "Tytuł dokumentu",
+    "document_content_placeholder": "Wklej tutaj treść dokumentu lub notatki...",
+    "full_name_placeholder": "Imię i nazwisko",
+    "email_placeholder": "email@org.pl"
   }
 }

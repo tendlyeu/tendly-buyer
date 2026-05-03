@@ -126,5 +126,18 @@
     "feature_pipeline": "Saglabāt iepirkumus caurulvadā",
     "view_plans": "Skatīt plānus",
     "dismiss": "Varbūt vēlāk"
+  },
+  "form": {
+    "title": "Nosaukums",
+    "type": "Tips",
+    "content_notes": "Saturs / Piezīmes",
+    "name": "Vārds",
+    "email": "E-pasts",
+    "role": "Loma",
+    "specialty": "Specialitāte",
+    "document_title_placeholder": "Dokumenta nosaukums",
+    "document_content_placeholder": "Ielīmējiet dokumenta saturu vai piezīmes šeit...",
+    "full_name_placeholder": "Pilns vārds",
+    "email_placeholder": "email@org.lv"
   }
 }

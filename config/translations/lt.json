@@ -126,5 +126,18 @@
     "feature_pipeline": "Išsaugoti pirkimus pipeline",
     "view_plans": "Peržiūrėti planus",
     "dismiss": "Gal vėliau"
+  },
+  "form": {
+    "title": "Pavadinimas",
+    "type": "Tipas",
+    "content_notes": "Turinys / Pastabos",
+    "name": "Vardas",
+    "email": "El. paštas",
+    "role": "Vaidmuo",
+    "specialty": "Specialybė",
+    "document_title_placeholder": "Dokumento pavadinimas",
+    "document_content_placeholder": "Įklijuokite dokumento turinį arba pastabas čia...",
+    "full_name_placeholder": "Vardas pavardė",
+    "email_placeholder": "email@org.lt"
   }
 }

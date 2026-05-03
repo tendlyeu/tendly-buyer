@@ -63,25 +63,25 @@ def _team_page_content(members, language="en"):
         Form(
             Div(
                 Div(
-                    Label("Name", cls="form-label"),
-                    Input(name="name", type="text", placeholder="Full name", cls="form-input", required=True),
+                    Label(t("form.name", language), cls="form-label"),
+                    Input(name="name", type="text", placeholder=t("form.full_name_placeholder", language), cls="form-input", required=True),
                     cls="form-group",
                 ),
                 Div(
-                    Label("Email", cls="form-label"),
-                    Input(name="user_email", type="email", placeholder="email@org.ee", cls="form-input", required=True),
+                    Label(t("form.email", language), cls="form-label"),
+                    Input(name="user_email", type="email", placeholder=t("form.email_placeholder", language), cls="form-input", required=True),
                     cls="form-group",
                 ),
                 cls="form-row",
             ),
             Div(
                 Div(
-                    Label("Role", cls="form-label"),
+                    Label(t("form.role", language), cls="form-label"),
                     Select(*role_options, name="procurement_role", cls="form-select"),
                     cls="form-group",
                 ),
                 Div(
-                    Label("Specialty", cls="form-label"),
+                    Label(t("form.specialty", language), cls="form-label"),
                     Select(*specialty_options, name="specialty", cls="form-select"),
                     cls="form-group",
                 ),

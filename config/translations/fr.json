@@ -126,5 +126,18 @@
     "feature_pipeline": "Sauvegarder dans le pipeline",
     "view_plans": "Voir les plans",
     "dismiss": "Peut-être plus tard"
+  },
+  "form": {
+    "title": "Titre",
+    "type": "Type",
+    "content_notes": "Contenu / Notes",
+    "name": "Nom",
+    "email": "E-mail",
+    "role": "Rôle",
+    "specialty": "Spécialité",
+    "document_title_placeholder": "Titre du document",
+    "document_content_placeholder": "Collez le contenu du document ou les notes ici...",
+    "full_name_placeholder": "Nom complet",
+    "email_placeholder": "email@org.fr"
   }
 }

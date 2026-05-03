@@ -267,5 +267,18 @@
     "feature_pipeline": "Save tenders to pipeline",
     "view_plans": "View plans",
     "dismiss": "Maybe later"
+  },
+  "form": {
+    "title": "Title",
+    "type": "Type",
+    "content_notes": "Content / Notes",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "specialty": "Specialty",
+    "document_title_placeholder": "Document title",
+    "document_content_placeholder": "Paste document content or notes here...",
+    "full_name_placeholder": "Full name",
+    "email_placeholder": "email@org.ee"
   }
 }

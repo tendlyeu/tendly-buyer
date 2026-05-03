@@ -262,5 +262,18 @@
     "feature_pipeline": "Salvesta hanked torujuhtmesse",
     "view_plans": "Vaata plaane",
     "dismiss": "Võib-olla hiljem"
+  },
+  "form": {
+    "title": "Pealkiri",
+    "type": "Tüüp",
+    "content_notes": "Sisu / Märkmed",
+    "name": "Nimi",
+    "email": "E-post",
+    "role": "Roll",
+    "specialty": "Eriala",
+    "document_title_placeholder": "Dokumendi pealkiri",
+    "document_content_placeholder": "Kleebige dokumendi sisu või märkmed siia...",
+    "full_name_placeholder": "Täisnimi",
+    "email_placeholder": "email@org.ee"
   }
 }

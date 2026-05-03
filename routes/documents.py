@@ -63,20 +63,20 @@ def _documents_page_content(docs, language="en"):
         Form(
             Div(
                 Div(
-                    Label("Title", cls="form-label"),
-                    Input(name="title", type="text", placeholder="Document title", cls="form-input", required=True),
+                    Label(t("form.title", language), cls="form-label"),
+                    Input(name="title", type="text", placeholder=t("form.document_title_placeholder", language), cls="form-input", required=True),
                     cls="form-group",
                 ),
                 Div(
-                    Label("Type", cls="form-label"),
+                    Label(t("form.type", language), cls="form-label"),
                     Select(*type_options, name="document_type", cls="form-select"),
                     cls="form-group",
                 ),
                 cls="form-row",
             ),
             Div(
-                Label("Content / Notes", cls="form-label"),
-                Textarea(name="content_text", placeholder="Paste document content or notes here...", cls="form-textarea", rows="3"),
+                Label(t("form.content_notes", language), cls="form-label"),
+                Textarea(name="content_text", placeholder=t("form.document_content_placeholder", language), cls="form-textarea", rows="3"),
                 cls="form-group",
             ),
             Div(
