@@ -139,5 +139,9 @@
     "document_content_placeholder": "Įklijuokite dokumento turinį arba pastabas čia...",
     "full_name_placeholder": "Vardas pavardė",
     "email_placeholder": "email@org.lt"
+  },
+  "procurements": {
+    "evaluation_criteria": "Vertinimo kriterijai",
+    "requirements": "Reikalavimai"
   }
 }

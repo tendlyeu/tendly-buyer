@@ -71,7 +71,9 @@
     "add_requirement": "Lisa nõue",
     "requirement_type": "Tüüp",
     "mandatory": "Kohustuslik",
-    "preferred": "Soovitav"
+    "preferred": "Soovitav",
+    "evaluation_criteria": "Hindamiskriteeriumid",
+    "requirements": "Nõuded"
   },
   "documents": {
     "page_title": "Dokumendid - Tendly Hankija",

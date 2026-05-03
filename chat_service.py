@@ -672,7 +672,16 @@ class TendlyChatService:
 
             # --- Stage 2: Tool dispatch ---
             tool_result = ToolResult()
-            if query_info.get("needs_search", False) or intent in ("company_search", "tender_detail"):
+            # Intents that always need a tool to run, even when no DB search
+            # is required (the LLM sets needs_search=false for these because
+            # they don't filter the tenders table).
+            artifact_intents = {
+                "rfp_draft", "tender_compare", "risk_analysis", "winning_strategy",
+                "gap_analysis", "requirements", "price_benchmark", "competitor_detail",
+            }
+            if (query_info.get("needs_search", False)
+                    or intent in ("company_search", "tender_detail")
+                    or intent in artifact_intents):
                 status_msg = "Searching companies..." if intent == "company_search" else "Searching tenders..."
                 yield _sse_event("status", {"status": "searching", "message": status_msg})
                 tool_result = await asyncio.to_thread(self._dispatch_tools, query_info)
@@ -701,6 +710,9 @@ class TendlyChatService:
                 user_message, query_info, tool_result.tenders,
                 conv_messages, intent,
                 companies=tool_result.companies,
+                artifact_type=tool_result.artifact_type,
+                artifact_summary=tool_result.summary,
+                artifact_data=tool_result.artifact_data,
             )
 
             # Emit response text
@@ -740,6 +752,8 @@ class TendlyChatService:
         """Non-streaming variant that collects the full response."""
         response_text = ""
         tenders = []
+        artifact = None
+        event_type = None
         async for chunk in self.process_message(conversation_id, user_message):
             for line in chunk.strip().split("\n"):
                 if line.startswith("event: "):
@@ -750,11 +764,14 @@ class TendlyChatService:
                         response_text += data.get("content", "")
                     elif event_type == "tenders":
                         tenders = data.get("tenders", [])
+                    elif event_type == "artifact":
+                        artifact = data
 
         conv = self.get_conversation(conversation_id) or {}
         return {
             "response": response_text,
             "tenders": tenders,
+            "artifact": artifact,
             "conversation_id": conversation_id,
             "title": conv.get("title", ""),
         }
@@ -971,6 +988,9 @@ class TendlyChatService:
         conversation_history: List[Dict],
         intent: str,
         companies: Optional[List[Dict]] = None,
+        artifact_type: Optional[str] = None,
+        artifact_summary: Optional[str] = None,
+        artifact_data: Optional[Dict] = None,
     ) -> str:
         """Generate a natural-language response using Gemini."""
 
@@ -981,8 +1001,38 @@ class TendlyChatService:
         else:
             sys_prompt = RESPONSE_SYSTEM_PROMPT
 
+        # When an analytical tool produced an artifact, tell the model so it
+        # writes a short pointer to the canvas instead of generic deflection
+        # text like "I cannot draft an RFP". The canvas already holds the
+        # full result; the chat reply just needs to summarise + redirect.
+        if artifact_type:
+            sys_prompt = sys_prompt + (
+                f"\n\nIMPORTANT: A specialised '{artifact_type}' tool has "
+                "already run successfully and the full result is rendered in "
+                "the canvas panel on the right. You MUST NOT say you cannot "
+                "perform this task or that you lack this capability — the "
+                "tool already did it. Acknowledge what was produced in 2-4 "
+                "sentences (using the artifact summary/data below if helpful) "
+                "and direct the user to the canvas panel for the complete "
+                "output. End with a 'Try also:' section with 2-3 contextually "
+                "relevant follow-ups."
+            )
+
         context_parts = [f"User query: {user_message}"]
         context_parts.append(f"Detected intent: {intent}")
+        if artifact_type:
+            context_parts.append(f"\nArtifact produced ({artifact_type}):")
+            if artifact_summary:
+                context_parts.append(f"  Summary: {artifact_summary}")
+            if artifact_data:
+                # Include only the most informative top-level keys to keep
+                # the prompt small but grounded.
+                keys = list(artifact_data.keys())[:8]
+                snippet = {k: artifact_data[k] for k in keys}
+                try:
+                    context_parts.append(f"  Data preview: {json.dumps(snippet, default=str)[:1500]}")
+                except Exception:
+                    pass
 
         if intent == "company_search" and companies:
             context_parts.append(f"\nFound {len(companies)} companies matching the search:\n")

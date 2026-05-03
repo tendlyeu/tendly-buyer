@@ -492,8 +492,8 @@ window.closeCanvas = function() {
 };
 
 // Open a server-rendered artifact in canvas by fetching its HTML
-window.openArtifact = function(type, id, title) {
-    var convId = activeConversationId || document.body.dataset.conversationId || '';
+window.openArtifact = function(type, id, title, conversationIdOverride) {
+    var convId = conversationIdOverride || activeConversationId || document.body.dataset.conversationId || '';
     var url = '/api/artifact/' + type + '/' + encodeURIComponent(id) + '?conversation_id=' + encodeURIComponent(convId);
     fetch(url)
         .then(function(resp) {
@@ -797,24 +797,25 @@ function sendMessage(text) {
                                 var artType = parsed.type || 'tender_detail';
                                 var artId = parsed.id;
                                 var artTenderId = parsed.tender_id;
+                                var artConvId = parsed.conversation_id || '';
                                 if (artType === 'tender_detail' && artTenderId) {
                                     showTenderDetail(artTenderId);
                                 } else if (artType === 'competitor_intel' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.competitor_intel', 'Competitor Intelligence'));
+                                    openArtifact(artType, artId, _t('canvas.competitor_intel', 'Competitor Intelligence'), artConvId);
                                 } else if (artType === 'tender_comparison' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'));
+                                    openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'), artConvId);
                                 } else if (artType === 'risk_analysis' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.risk_analysis', 'Risk Analysis'));
+                                    openArtifact(artType, artId, _t('canvas.risk_analysis', 'Risk Analysis'), artConvId);
                                 } else if (artType === 'winning_strategy' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.winning_strategy', 'Winning Strategy'));
+                                    openArtifact(artType, artId, _t('canvas.winning_strategy', 'Winning Strategy'), artConvId);
                                 } else if (artType === 'gap_analysis' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.gap_analysis', 'Gap Analysis'));
+                                    openArtifact(artType, artId, _t('canvas.gap_analysis', 'Gap Analysis'), artConvId);
                                 } else if (artType === 'requirements' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.requirements', 'Requirements'));
+                                    openArtifact(artType, artId, _t('canvas.requirements', 'Requirements'), artConvId);
                                 } else if (artType === 'price_benchmark' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.price_benchmark', 'Price Benchmarks'));
+                                    openArtifact(artType, artId, _t('canvas.price_benchmark', 'Price Benchmarks'), artConvId);
                                 } else if (artType === 'rfp_draft' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.rfp_draft', 'RFP Draft'));
+                                    openArtifact(artType, artId, _t('canvas.rfp_draft', 'RFP Draft'), artConvId);
                                 }
                             } else if (pendingEventType === 'rate_limit') {
                                 // Rate limit hit — show upgrade modal

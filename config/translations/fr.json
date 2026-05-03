@@ -139,5 +139,9 @@
     "document_content_placeholder": "Collez le contenu du document ou les notes ici...",
     "full_name_placeholder": "Nom complet",
     "email_placeholder": "email@org.fr"
+  },
+  "procurements": {
+    "evaluation_criteria": "Critères d'évaluation",
+    "requirements": "Exigences"
   }
 }

@@ -91,6 +91,15 @@ def register_api_routes(rt, chat_service):
                 if tenders:
                     yield f"event: tenders\ndata: {json.dumps(tenders, default=str)}\n\n"
 
+                artifact = result.get("artifact")
+                if artifact:
+                    # Always include conversation_id so the client can fetch
+                    # /api/artifact/{type}/{id}?conversation_id=... even if it
+                    # didn't yet know the conversation (e.g. brand-new chat).
+                    artifact_payload = dict(artifact)
+                    artifact_payload.setdefault("conversation_id", conversation_id)
+                    yield f"event: artifact\ndata: {json.dumps(artifact_payload, default=str)}\n\n"
+
                 # Include rate limit info in done event
                 done_data = {
                     'conversation_id': conversation_id,

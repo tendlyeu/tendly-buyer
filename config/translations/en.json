@@ -76,7 +76,9 @@
     "add_requirement": "Add Requirement",
     "requirement_type": "Type",
     "mandatory": "Mandatory",
-    "preferred": "Preferred"
+    "preferred": "Preferred",
+    "evaluation_criteria": "Evaluation Criteria",
+    "requirements": "Requirements"
   },
   "documents": {
     "page_title": "Documents - Tendly Buyer",

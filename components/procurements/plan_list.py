@@ -589,9 +589,76 @@ def procurement_detail_page(plan, steps=None, documents=None, language="en"):
             Div(*step_indicators, cls="workflow-steps"),
             cls="dashboard-section",
         ),
+        # Evaluation criteria + requirements (from metadata_json)
+        _criteria_and_requirements_section(metadata, language),
         # Documents section
         _documents_section(plan["id"], documents, language),
         # AI Document Review section
         ai_review_section(plan, language),
         cls="page-content",
     )
+
+
+def _criteria_and_requirements_section(metadata, language="en"):
+    """Render evaluation criteria + requirements if present in metadata_json.
+
+    Returns an empty placeholder when neither is configured so the layout
+    stays consistent."""
+    criteria = metadata.get("evaluation_criteria") or []
+    requirements = metadata.get("requirements") or []
+    if not criteria and not requirements:
+        return Div()
+
+    blocks = []
+
+    if criteria:
+        rows = [
+            Div(
+                Div(c.get("name", ""), style="font-size:13px;font-weight:500;color:#111827;flex:1;min-width:0;"),
+                Div(
+                    f"{c.get('weight', '')}%" if c.get("weight") not in (None, "") else "",
+                    style="font-size:13px;color:#6b7280;width:60px;text-align:right;font-variant-numeric:tabular-nums;",
+                ),
+                Div(c.get("description", ""), style="font-size:12px;color:#6b7280;flex:2;min-width:0;"),
+                style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f3f4f6;",
+            )
+            for c in criteria
+        ]
+        blocks.append(
+            Div(
+                H2(t("procurements.evaluation_criteria", language), style="font-size:16px;font-weight:600;color:#111827;margin:0 0 12px;"),
+                *rows,
+                cls="dashboard-section",
+            )
+        )
+
+    if requirements:
+        rows = [
+            Div(
+                Div(r.get("text", ""), style="font-size:13px;color:#111827;flex:1;min-width:0;"),
+                Span(
+                    r.get("priority", "should").upper(),
+                    style=(
+                        "font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;"
+                        + ("background:#fee2e2;color:#991b1b;" if r.get("priority") == "must"
+                           else "background:#fef3c7;color:#92400e;" if r.get("priority") == "should"
+                           else "background:#e5e7eb;color:#374151;")
+                    ),
+                ),
+                Span(
+                    (r.get("type") or "").replace("_", " ").title(),
+                    style="font-size:11px;color:#6b7280;width:120px;text-align:right;",
+                ),
+                style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f3f4f6;",
+            )
+            for r in requirements
+        ]
+        blocks.append(
+            Div(
+                H2(t("procurements.requirements", language), style="font-size:16px;font-weight:600;color:#111827;margin:0 0 12px;"),
+                *rows,
+                cls="dashboard-section",
+            )
+        )
+
+    return Div(*blocks)

@@ -139,5 +139,9 @@
     "document_content_placeholder": "Ielīmējiet dokumenta saturu vai piezīmes šeit...",
     "full_name_placeholder": "Pilns vārds",
     "email_placeholder": "email@org.lv"
+  },
+  "procurements": {
+    "evaluation_criteria": "Vērtēšanas kritēriji",
+    "requirements": "Prasības"
   }
 }
