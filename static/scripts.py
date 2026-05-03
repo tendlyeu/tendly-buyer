@@ -800,14 +800,10 @@ function sendMessage(text) {
                                 var artConvId = parsed.conversation_id || '';
                                 if (artType === 'tender_detail' && artTenderId) {
                                     showTenderDetail(artTenderId);
-                                } else if (artType === 'competitor_intel' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.competitor_intel', 'Competitor Intelligence'), artConvId);
                                 } else if (artType === 'tender_comparison' && artId) {
                                     openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'), artConvId);
                                 } else if (artType === 'risk_analysis' && artId) {
                                     openArtifact(artType, artId, _t('canvas.risk_analysis', 'Risk Analysis'), artConvId);
-                                } else if (artType === 'winning_strategy' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.winning_strategy', 'Winning Strategy'), artConvId);
                                 } else if (artType === 'gap_analysis' && artId) {
                                     openArtifact(artType, artId, _t('canvas.gap_analysis', 'Gap Analysis'), artConvId);
                                 } else if (artType === 'requirements' && artId) {

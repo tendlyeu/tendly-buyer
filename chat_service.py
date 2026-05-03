@@ -24,14 +24,15 @@ from sqlalchemy.orm.attributes import flag_modified
 import tools.search_tenders
 import tools.search_companies
 import tools.tender_detail
-import tools.competitor_intel
 import tools.tender_compare
 import tools.risk_analysis
-import tools.winning_strategy
 import tools.gap_analysis
 import tools.requirements_extraction
 import tools.price_benchmark
 import tools.rfp_draft
+# Seller-side tools (winning_strategy, competitor_intel) are intentionally
+# NOT imported — Tendly Buyer is a buyer-only product and bidding strategy /
+# competitor analysis don't belong on this surface.
 
 from tools.registry import tool_registry, ToolResult
 from tools.search_tenders import COUNTRY_FLAGS, CURRENCY_SYMBOLS, format_tender
@@ -74,7 +75,7 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
 ### Output JSON schema
 
 {
-  "intent": "search" | "tender_detail" | "general_knowledge" | "market_intelligence" | "company_search" | "competitor_detail" | "tender_compare" | "risk_analysis" | "winning_strategy" | "gap_analysis" | "requirements" | "price_benchmark" | "rfp_draft",
+  "intent": "search" | "tender_detail" | "general_knowledge" | "market_intelligence" | "company_search" | "tender_compare" | "risk_analysis" | "gap_analysis" | "requirements" | "price_benchmark" | "rfp_draft",
   "rfp_description": "string or null (full text of what user wants to procure, for rfp_draft intent)",
   "needs_search": true/false,
   "country_codes": ["EE","GB","LV","PL","LT","FR"],
@@ -86,8 +87,15 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
   "tender_id": null or number,
   "tender_ids": null or [number, number],
   "company_name": "string or null",
-  "search_type": "industry"|"topic"|"location"|"value"|"tender_id"|"general"|"company"|"competitor_detail"|"tender_compare"
+  "search_type": "industry"|"topic"|"location"|"value"|"tender_id"|"general"|"company"|"tender_compare"
 }
+
+### Audience
+This assistant serves **public-sector procurement buyers** (not bidders).
+NEVER classify queries as "winning_strategy" or "competitor_detail" — those
+are seller-side concepts. If a user asks for bidding strategy or competitor
+analysis, treat it as "general_knowledge" and explain politely that this
+platform is for buyers preparing their own procurements.
 
 ### Intent rules
 
@@ -95,11 +103,9 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
 - "tender_detail": user asks about a specific tender by ID or reference number
 - "general_knowledge": user asks about procurement concepts, processes, regulations
 - "market_intelligence": user asks about market trends, competition, pricing, win rates
-- "company_search": user asks about a specific company, competitor, or supplier — who won tenders, company track record, competitors in an industry
-- "competitor_detail": user asks for deep analysis of a specific company — pricing strategy, sector focus, buyer relationships, competition levels (triggers the competitor intelligence canvas artifact)
-- "tender_compare": user asks to compare two or more specific tenders side by side (requires 2+ tender IDs)
-- "risk_analysis": user asks about risks in a specific tender — requires a tender_id. Triggers AI-powered document risk analysis
-- "winning_strategy": user asks for a winning/bidding strategy for a specific tender — requires a tender_id. Generates AI strategy
+- "company_search": user wants to discover suppliers/vendors — who has won similar tenders historically, who could be a candidate vendor for a buyer's upcoming procurement
+- "tender_compare": user asks to compare two or more specific tenders side by side (requires 2+ tender IDs) — used as benchmarking when drafting a new procurement
+- "risk_analysis": user asks about risks in a tender's documents — requires a tender_id. Buyers use this to study how peers framed similar procurements
 - "gap_analysis": user asks about gaps or discrepancies in a tender's documents — requires a tender_id
 - "requirements": user asks to see/extract requirements from a specific tender — requires a tender_id
 - "price_benchmark": user asks about prices, costs, market rates, budgets, or "what is a fair price for X?" — triggers price benchmarking against UK tender data
@@ -218,14 +224,6 @@ User: "has Nortal won any tenders?"
 → Step 1: English. Step 2: none. Step 3: none. Step 4: Nortal (company). Step 5: none. Step 6: none. Step 7: none.
 {"intent":"company_search","needs_search":true,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":[],"min_value":null,"max_value":null,"tender_id":null,"company_name":"Nortal","search_type":"company"}
 
-User: "analyze Nortal's winning strategy in Estonia"
-→ Step 1: English. Step 2: Estonia → EE. Step 3: none. Step 4: Nortal (company). Step 5: none. Step 6: none. Step 7: none.
-{"intent":"competitor_detail","needs_search":true,"country_codes":["EE"],"industry":null,"cpv_divisions":[],"keywords":[],"min_value":null,"max_value":null,"tender_id":null,"company_name":"Nortal","search_type":"competitor_detail"}
-
-User: "what is Helmes pricing strategy for tenders?"
-→ Step 1: English. Step 2: none. Step 3: none. Step 4: Helmes (company). Step 5: none. Step 6: none. Step 7: none.
-{"intent":"competitor_detail","needs_search":true,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":[],"min_value":null,"max_value":null,"tender_id":null,"company_name":"Helmes","search_type":"competitor_detail"}
-
 User: "compare tenders 271946 and 268500"
 → Step 1: English. Step 2: none. Step 3: none. Step 4: none. Step 5: none. Step 6: none. Step 7: tender IDs 271946, 268500.
 {"intent":"tender_compare","needs_search":true,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":[],"min_value":null,"max_value":null,"tender_id":null,"tender_ids":[271946,268500],"company_name":null,"search_type":"tender_compare"}
@@ -233,10 +231,6 @@ User: "compare tenders 271946 and 268500"
 User: "what are the risks in tender 271946?"
 → Step 1: English. Step 2: none. Step 3: none. Step 4: none. Step 5: none. Step 6: none. Step 7: tender ID 271946.
 {"intent":"risk_analysis","needs_search":true,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":[],"min_value":null,"max_value":null,"tender_id":271946,"company_name":null,"search_type":"tender_id"}
-
-User: "generate a winning strategy for tender 268500"
-→ Step 1: English. Step 2: none. Step 3: none. Step 4: none. Step 5: none. Step 6: none. Step 7: tender ID 268500.
-{"intent":"winning_strategy","needs_search":true,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":[],"min_value":null,"max_value":null,"tender_id":268500,"company_name":null,"search_type":"tender_id"}
 
 User: "show me the gaps in tender 271946 documents"
 → Step 1: English. Step 2: none. Step 3: none. Step 4: none. Step 5: none. Step 6: none. Step 7: tender ID 271946.
@@ -498,33 +492,17 @@ class TendlyChatService:
         """Dispatch to the appropriate tool based on query analysis."""
         intent = query_info.get("intent", "search")
 
-        # Competitor deep analysis — opens canvas artifact
-        if intent == "competitor_detail" and query_info.get("company_name"):
-            tool = tool_registry.get("competitor_intel")
-            if tool:
-                result = tool.execute(query_info, {"chat_service": self})
-                # Also run company search for chat context
-                search_tool = tool_registry.get("search_companies")
-                if search_tool and not result.error:
-                    search_result = search_tool.execute(query_info, {"chat_service": self})
-                    result.companies = search_result.companies
-                return result
-
         # Tender comparison — opens canvas artifact
         if intent == "tender_compare" and query_info.get("tender_ids"):
             tool = tool_registry.get("tender_compare")
             if tool:
                 return tool.execute(query_info, {"chat_service": self})
 
-        # Risk analysis — AI-powered document risk assessment
+        # Risk analysis — assess risks in a tender's documents (used by buyers
+        # to study how peers framed similar procurements before drafting their
+        # own).
         if intent == "risk_analysis" and query_info.get("tender_id"):
             tool = tool_registry.get("risk_analysis")
-            if tool:
-                return tool.execute({"tender_id": query_info["tender_id"]}, {"chat_service": self})
-
-        # Winning strategy — AI-powered bidding strategy
-        if intent == "winning_strategy" and query_info.get("tender_id"):
-            tool = tool_registry.get("winning_strategy")
             if tool:
                 return tool.execute({"tender_id": query_info["tender_id"]}, {"chat_service": self})
 
@@ -676,8 +654,8 @@ class TendlyChatService:
             # is required (the LLM sets needs_search=false for these because
             # they don't filter the tenders table).
             artifact_intents = {
-                "rfp_draft", "tender_compare", "risk_analysis", "winning_strategy",
-                "gap_analysis", "requirements", "price_benchmark", "competitor_detail",
+                "rfp_draft", "tender_compare", "risk_analysis",
+                "gap_analysis", "requirements", "price_benchmark",
             }
             if (query_info.get("needs_search", False)
                     or intent in ("company_search", "tender_detail")

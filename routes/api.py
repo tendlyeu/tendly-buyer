@@ -7,10 +7,10 @@ from starlette.responses import StreamingResponse, HTMLResponse, Response, Redir
 from fasthtml.common import to_xml
 
 from components.tender_detail import tender_detail_panel
-from components.artifacts.competitor_intel import competitor_intel_panel
+# competitor_intel/winning_strategy artifacts are seller-side and are
+# intentionally not surfaced in this buyer-only product.
 from components.artifacts.tender_comparison import tender_comparison_panel
 from components.artifacts.risk_analysis import risk_analysis_panel
-from components.artifacts.winning_strategy import winning_strategy_panel
 from components.artifacts.gap_analysis import gap_analysis_panel
 from components.artifacts.requirements import requirements_panel
 from components.artifacts.price_benchmark import price_benchmark_panel
@@ -240,16 +240,6 @@ def register_api_routes(rt, chat_service):
                 return Response("Tender not found", status_code=404)
             return HTMLResponse(to_xml(panel))
 
-        if artifact_type == "competitor_intel":
-            # Look up artifact data from conversation store
-            # The artifact_id is passed as a query param or from conversation
-            conv_id = request.query_params.get("conversation_id", "")
-            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
-            if artifact and artifact.get("data"):
-                panel = competitor_intel_panel(artifact["data"], language=language)
-                return HTMLResponse(to_xml(panel))
-            return Response("Artifact not found", status_code=404)
-
         if artifact_type == "tender_comparison":
             conv_id = request.query_params.get("conversation_id", "")
             artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
@@ -263,14 +253,6 @@ def register_api_routes(rt, chat_service):
             artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
             if artifact and artifact.get("data"):
                 panel = risk_analysis_panel(artifact["data"], language=language)
-                return HTMLResponse(to_xml(panel))
-            return Response("Artifact not found", status_code=404)
-
-        if artifact_type == "winning_strategy":
-            conv_id = request.query_params.get("conversation_id", "")
-            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
-            if artifact and artifact.get("data"):
-                panel = winning_strategy_panel(artifact["data"], language=language)
                 return HTMLResponse(to_xml(panel))
             return Response("Artifact not found", status_code=404)
 
