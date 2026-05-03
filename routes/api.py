@@ -124,7 +124,9 @@ def register_api_routes(rt, chat_service):
     def get(request):
         auth = get_auth_from_request(request)
         user_email = auth.get('email') if auth else None
-        return chat_service.get_conversations(user_email=user_email)
+        # Always return JSON list (empty list serialises to a zero-byte body
+        # via FastHTML's default; force a real JSON array).
+        return JSONResponse(chat_service.get_conversations(user_email=user_email))
 
     @rt("/api/conversations/new")
     def post(request):
@@ -135,7 +137,9 @@ def register_api_routes(rt, chat_service):
 
     @rt("/api/conversations/{conversation_id}")
     def delete(request, conversation_id: str):
-        chat_service.delete_conversation(conversation_id)
+        auth = get_auth_from_request(request)
+        user_email = auth.get('email') if auth else None
+        chat_service.delete_conversation(conversation_id, user_email=user_email)
         return {"ok": True}
 
     @rt("/api/tender/{tender_id}")

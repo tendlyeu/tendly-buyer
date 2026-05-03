@@ -53,3 +53,28 @@ def require_auth(handler):
                 return _is_unauth_response(req) if req is not None else JSONResponse({"error": "authentication required"}, status_code=401)
             return handler(*args, **kwargs)
         return wrapped
+
+
+def user_owns_plan(plan_id: str, user_email: str) -> bool:
+    """Return True if the plan exists and is owned by user_email.
+
+    Used at the top of every plan-scoped write/read route to prevent a
+    second user from completing someone else's workflow steps, uploading
+    or deleting their documents, or running AI reviews on their plans."""
+    from services.procurement_service import get_plan
+    if not plan_id or not user_email:
+        return False
+    plan = get_plan(plan_id)
+    if not plan:
+        return False
+    org = plan.get("organization_id") or plan.get("created_by_email")
+    return bool(org) and org == user_email
+
+
+def forbidden_response(request):
+    """404 (not 403) so the existence of resources can't be probed."""
+    path = getattr(request.url, "path", "")
+    accept = request.headers.get("accept", "")
+    if path.startswith("/api/") or "application/json" in accept or request.headers.get("hx-request"):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return RedirectResponse(url="/procurements", status_code=302)

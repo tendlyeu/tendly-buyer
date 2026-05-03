@@ -13,8 +13,11 @@ def register_page_routes(rt, chat_service):
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        stats = get_stats()
-        plans = list_plans()
+        user_email = auth.get("email") if auth else None
+        # Dashboard stats and "recent plans" are always scoped to the
+        # logged-in user. Anonymous landing on / sees zeroes.
+        stats = get_stats(organization_id=user_email) if user_email else {}
+        plans = list_plans(organization_id=user_email) if user_email else []
         content = dashboard_page_content(plans=plans, stats=stats, language=language)
         return buyer_page(content, language=language, auth=auth, active_page="dashboard", chat_service=chat_service, title_key="dashboard.page_title")
 
@@ -32,7 +35,7 @@ def register_page_routes(rt, chat_service):
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
         rate_info = get_usage_info(request, user_email)
-        conv = chat_service.get_conversation(conversation_id)
+        conv = chat_service.get_conversation(conversation_id, user_email=user_email)
         if not conv:
             return chat_page(chat_service=chat_service, language=language, auth=auth, rate_info=rate_info)
         return chat_page(conversation_id=conversation_id, messages=conv.get("messages", []), chat_service=chat_service, language=language, auth=auth, rate_info=rate_info)

@@ -14,7 +14,7 @@ from components.procurements.plan_list import (
 )
 from components.procurements.ai_review_panel import ai_review_panel
 from config.i18n import get_language_from_request, t
-from routes.auth_utils import get_auth_from_request, require_auth
+from routes.auth_utils import get_auth_from_request, require_auth, user_owns_plan, forbidden_response
 from services.procurement_service import (
     create_plan, get_plan, list_plans, get_steps, complete_step, get_stats,
     list_documents, add_document, get_document, delete_document,
@@ -108,6 +108,9 @@ def register_procurement_routes(rt, chat_service):
         # The detail page links here for "Edit". A full edit form is a
         # bigger feature; for now redirect to detail (and a follow-up CL
         # can replace this with a real edit page).
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         return RedirectResponse(f"/procurements/{plan_id}", status_code=302)
 
     @rt("/procurements/{plan_id}/steps/{step_num}/complete")
@@ -115,6 +118,8 @@ def register_procurement_routes(rt, chat_service):
     async def post(request, plan_id: str, step_num: int):
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
         complete_step(plan_id, step_num, completed_by=user_email)
         return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
 
@@ -124,10 +129,12 @@ def register_procurement_routes(rt, chat_service):
     @require_auth
     async def post(request, plan_id: str):
         """Handle multipart file upload for a procurement plan."""
-        form = await request.form()
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
 
+        form = await request.form()
         title = form.get("title", "Untitled")
         document_type = form.get("document_type", "other")
         uploaded_file = form.get("document")
@@ -169,8 +176,11 @@ def register_procurement_routes(rt, chat_service):
     @require_auth
     def get(request, plan_id: str, doc_id: str):
         """Serve a document file from disk."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         doc = get_document(doc_id)
-        if not doc:
+        if not doc or doc.get("procurement_plan_id") != plan_id:
             return RedirectResponse(f"/procurements/{plan_id}", status_code=302)
 
         file_path = doc.get("file_path", "")
@@ -187,8 +197,12 @@ def register_procurement_routes(rt, chat_service):
     @require_auth
     async def delete(request, plan_id: str, doc_id: str):
         """Delete a document (from DB and disk)."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         doc = get_document(doc_id)
-        if doc:
+        # Belt-and-braces: doc must also belong to this plan
+        if doc and doc.get("procurement_plan_id") == plan_id:
             file_path = doc.get("file_path", "")
             if file_path:
                 FileProcessor.delete_file(file_path)
@@ -202,6 +216,9 @@ def register_procurement_routes(rt, chat_service):
     @require_auth
     async def post(request, plan_id: str):
         """Run AI document review and return results as HTML fragment."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         from services.document_review_service import DocumentReviewService
         from fasthtml.common import Div, P, Span, Button, NotStr
 

@@ -406,13 +406,20 @@ class TendlyChatService:
         finally:
             session.close()
 
-    def get_conversation(self, conversation_id: str) -> Optional[Dict]:
+    def get_conversation(self, conversation_id: str, user_email: Optional[str] = None) -> Optional[Dict]:
+        """Fetch a conversation. If user_email is given, returns None unless
+        the conversation belongs to that user OR has no owner (anonymous)."""
         session = get_tendly_session()
         try:
             ctx = session.query(ChatContext).filter(
                 ChatContext.conversation_id == conversation_id
             ).first()
             if ctx is None:
+                return None
+            # Tenant check: a logged-in caller can only read their own
+            # conversations. Anonymous (orphan) conversations have user_email
+            # blank/null and are accessible to whoever knows the UUID.
+            if user_email and ctx.user_email and ctx.user_email != user_email:
                 return None
             return {
                 "id": ctx.conversation_id,
@@ -423,12 +430,23 @@ class TendlyChatService:
         finally:
             session.close()
 
-    def delete_conversation(self, conversation_id: str) -> bool:
+    def delete_conversation(self, conversation_id: str, user_email: Optional[str] = None) -> bool:
+        """Delete a conversation. With user_email, only deletes when owned
+        by that user (or unowned)."""
         session = get_tendly_session()
         try:
-            deleted = session.query(ChatContext).filter(
+            q = session.query(ChatContext).filter(
                 ChatContext.conversation_id == conversation_id
-            ).delete(synchronize_session='fetch')
+            )
+            if user_email:
+                # Owner OR unowned (legacy / anonymous)
+                from sqlalchemy import or_
+                q = q.filter(or_(
+                    ChatContext.user_email == user_email,
+                    ChatContext.user_email == None,
+                    ChatContext.user_email == "",
+                ))
+            deleted = q.delete(synchronize_session='fetch')
             session.commit()
             return deleted > 0
         except Exception:
