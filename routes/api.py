@@ -16,7 +16,7 @@ from components.artifacts.requirements import requirements_panel
 from components.artifacts.price_benchmark import price_benchmark_panel
 from components.artifacts.rfp_draft import rfp_draft_panel
 from config.i18n import get_language_from_request, SUPPORTED_LANGUAGES, LANGUAGE_COOKIE
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth
 from core.rate_limiter import check_rate_limit, record_usage
 
 # Auth-related database functions (may not exist yet if auth isn't fully deployed)
@@ -291,6 +291,7 @@ def register_api_routes(rt, chat_service):
         return Response(f"Unknown artifact type: {artifact_type}", status_code=404)
 
     @rt("/api/role/switch/{role}")
+    @require_auth
     def post(request, role: str):
         """Switch between buyer and seller role."""
         if role not in ("buyer", "seller"):

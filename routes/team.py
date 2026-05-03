@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse
 
 from components.layout import buyer_page
 from config.i18n import get_language_from_request, t
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth
 from core.utils import _raw
 from services.procurement_service import list_team_members, add_team_member, remove_team_member
 
@@ -124,6 +124,7 @@ def _team_page_content(members, language="en"):
 
 def register_team_routes(rt, chat_service):
     @rt("/team")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -132,6 +133,7 @@ def register_team_routes(rt, chat_service):
         return buyer_page(content, language=language, auth=auth, active_page="team", chat_service=chat_service, title_key="team.page_title")
 
     @rt("/api/team")
+    @require_auth
     async def post(request):
         form = await request.form()
         add_team_member(

@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse, JSONResponse
 
 from components.layout import buyer_page
 from config.i18n import get_language_from_request, t
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth
 from core.utils import _raw
 from services.procurement_service import list_documents, add_document, get_document, delete_document
 
@@ -115,6 +115,7 @@ def _documents_page_content(docs, language="en"):
 
 def register_document_routes(rt, chat_service):
     @rt("/documents")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -123,6 +124,7 @@ def register_document_routes(rt, chat_service):
         return buyer_page(content, language=language, auth=auth, active_page="documents", chat_service=chat_service, title_key="documents.page_title")
 
     @rt("/documents/templates")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -131,6 +133,7 @@ def register_document_routes(rt, chat_service):
         return buyer_page(content, language=language, auth=auth, active_page="documents", chat_service=chat_service, title_key="documents.page_title")
 
     @rt("/api/documents")
+    @require_auth
     async def post(request):
         form = await request.form()
         auth = get_auth_from_request(request)

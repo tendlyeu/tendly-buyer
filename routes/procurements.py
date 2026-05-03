@@ -14,7 +14,7 @@ from components.procurements.plan_list import (
 )
 from components.procurements.ai_review_panel import ai_review_panel
 from config.i18n import get_language_from_request, t
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth
 from services.procurement_service import (
     create_plan, get_plan, list_plans, get_steps, complete_step, get_stats,
     list_documents, add_document, get_document, delete_document,
@@ -24,6 +24,7 @@ from services.file_processor import FileProcessor
 
 def register_procurement_routes(rt, chat_service):
     @rt("/procurements")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -32,6 +33,7 @@ def register_procurement_routes(rt, chat_service):
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
 
     @rt("/procurements/new")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -39,6 +41,7 @@ def register_procurement_routes(rt, chat_service):
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.new_title")
 
     @rt("/procurements")
+    @require_auth
     async def post(request):
         form = await request.form()
         auth = get_auth_from_request(request)
@@ -81,6 +84,7 @@ def register_procurement_routes(rt, chat_service):
         return RedirectResponse(f"/procurements/{plan['id']}", status_code=303)
 
     @rt("/procurements/{plan_id}")
+    @require_auth
     def get(request, plan_id: str):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -92,7 +96,16 @@ def register_procurement_routes(rt, chat_service):
         content = procurement_detail_page(plan=plan, steps=steps, documents=docs, language=language)
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
 
+    @rt("/procurements/{plan_id}/edit")
+    @require_auth
+    def get(request, plan_id: str):
+        # The detail page links here for "Edit". A full edit form is a
+        # bigger feature; for now redirect to detail (and a follow-up CL
+        # can replace this with a real edit page).
+        return RedirectResponse(f"/procurements/{plan_id}", status_code=302)
+
     @rt("/procurements/{plan_id}/steps/{step_num}/complete")
+    @require_auth
     async def post(request, plan_id: str, step_num: int):
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
@@ -102,6 +115,7 @@ def register_procurement_routes(rt, chat_service):
     # --- Document upload, download, delete ---
 
     @rt("/api/procurements/{plan_id}/documents")
+    @require_auth
     async def post(request, plan_id: str):
         """Handle multipart file upload for a procurement plan."""
         form = await request.form()
@@ -144,6 +158,7 @@ def register_procurement_routes(rt, chat_service):
         return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
 
     @rt("/api/procurements/{plan_id}/documents/{doc_id}/download")
+    @require_auth
     def get(request, plan_id: str, doc_id: str):
         """Serve a document file from disk."""
         doc = get_document(doc_id)
@@ -161,6 +176,7 @@ def register_procurement_routes(rt, chat_service):
         )
 
     @rt("/api/procurements/{plan_id}/documents/{doc_id}")
+    @require_auth
     async def delete(request, plan_id: str, doc_id: str):
         """Delete a document (from DB and disk)."""
         doc = get_document(doc_id)
@@ -175,6 +191,7 @@ def register_procurement_routes(rt, chat_service):
     # --- AI Document Review ---
 
     @rt("/api/procurements/{plan_id}/ai-review")
+    @require_auth
     async def post(request, plan_id: str):
         """Run AI document review and return results as HTML fragment."""
         from services.document_review_service import DocumentReviewService
