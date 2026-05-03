@@ -119,7 +119,8 @@ def register_document_routes(rt, chat_service):
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        docs = list_documents()
+        org_id = auth.get("email") if auth else None
+        docs = list_documents(organization_id=org_id)
         content = _documents_page_content(docs, language)
         return buyer_page(content, language=language, auth=auth, active_page="documents", chat_service=chat_service, title_key="documents.page_title")
 
@@ -128,7 +129,8 @@ def register_document_routes(rt, chat_service):
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        docs = list_documents()
+        org_id = auth.get("email") if auth else None
+        docs = list_documents(organization_id=org_id)
         content = _documents_page_content(docs, language)
         return buyer_page(content, language=language, auth=auth, active_page="documents", chat_service=chat_service, title_key="documents.page_title")
 
@@ -143,5 +145,6 @@ def register_document_routes(rt, chat_service):
             document_type=form.get("document_type", "other"),
             content_text=form.get("content_text", ""),
             uploaded_by_email=user_email,
+            organization_id=user_email,
         )
         return RedirectResponse("/documents", status_code=303)

@@ -128,7 +128,8 @@ def register_team_routes(rt, chat_service):
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        members = list_team_members("default")
+        org_id = auth.get("email") if auth else "default"
+        members = list_team_members(org_id)
         content = _team_page_content(members, language)
         return buyer_page(content, language=language, auth=auth, active_page="team", chat_service=chat_service, title_key="team.page_title")
 
@@ -136,8 +137,10 @@ def register_team_routes(rt, chat_service):
     @require_auth
     async def post(request):
         form = await request.form()
+        auth = get_auth_from_request(request)
+        org_id = auth.get("email") if auth else "default"
         add_team_member(
-            organization_id="default",
+            organization_id=org_id,
             user_email=form.get("user_email", ""),
             name=form.get("name", ""),
             procurement_role=form.get("procurement_role", ""),

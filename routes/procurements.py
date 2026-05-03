@@ -28,7 +28,8 @@ def register_procurement_routes(rt, chat_service):
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        plans = list_plans()
+        user_email = auth.get("email") if auth else None
+        plans = list_plans(organization_id=user_email)
         content = procurement_list_page(plans=plans, language=language)
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
 
@@ -79,6 +80,7 @@ def register_procurement_routes(rt, chat_service):
             fiscal_year=int(form.get("fiscal_year") or 2026),
             procurement_method=form.get("procurement_method", "open"),
             created_by_email=user_email,
+            organization_id=user_email,
             metadata_json=metadata if metadata else None,
         )
         return RedirectResponse(f"/procurements/{plan['id']}", status_code=303)
@@ -88,8 +90,12 @@ def register_procurement_routes(rt, chat_service):
     def get(request, plan_id: str):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
         plan = get_plan(plan_id)
-        if not plan:
+        # Tenant isolation: only the creator can view their plan.
+        # NOTE: when team-level sharing arrives, replace this with an
+        # organization-membership check.
+        if not plan or (plan.get("organization_id") and plan.get("organization_id") != user_email):
             return RedirectResponse("/procurements", status_code=302)
         steps = get_steps(plan_id)
         docs = list_documents(procurement_plan_id=plan_id)
@@ -139,6 +145,7 @@ def register_procurement_routes(rt, chat_service):
                     content_text=result["content_text"],
                     procurement_plan_id=plan_id,
                     uploaded_by_email=user_email,
+                    organization_id=user_email,
                     file_path=result["file_path"],
                 )
             except ValueError as e:
@@ -153,6 +160,7 @@ def register_procurement_routes(rt, chat_service):
                 content_text="",
                 procurement_plan_id=plan_id,
                 uploaded_by_email=user_email,
+                organization_id=user_email,
             )
 
         return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
