@@ -145,7 +145,7 @@ def _login_page(language, error=""):
                     Div(
                         Div("T", cls="login-logo-mark"),
                         Span("Tendly", cls="login-logo-text"),
-                        Span(t("app.chat", language), cls="login-logo-badge"),
+                        Span(t("app.buyer_badge", language), cls="login-logo-badge"),
                         Span("BETA", cls="login-logo-badge-beta"),
                         cls="login-logo",
                     ),
