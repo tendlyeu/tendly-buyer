@@ -143,5 +143,12 @@
   "procurements": {
     "evaluation_criteria": "Vērtēšanas kritēriji",
     "requirements": "Prasības"
+  },
+  "create_plan": {
+    "created": "Izveidots",
+    "open_plan": "Atvērt plānu"
+  },
+  "canvas": {
+    "create_plan": "Jauns iepirkuma plāns"
   }
 }

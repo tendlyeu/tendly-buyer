@@ -143,5 +143,12 @@
   "procurements": {
     "evaluation_criteria": "Kryteria oceny",
     "requirements": "Wymagania"
+  },
+  "create_plan": {
+    "created": "Utworzono",
+    "open_plan": "Otwórz plan"
+  },
+  "canvas": {
+    "create_plan": "Nowy plan zamówień"
   }
 }

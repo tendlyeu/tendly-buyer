@@ -10,6 +10,7 @@ from components.tender_detail import tender_detail_panel
 # competitor_intel/winning_strategy artifacts are seller-side and are
 # intentionally not surfaced in this buyer-only product.
 from components.artifacts.tender_comparison import tender_comparison_panel
+from components.artifacts.create_plan import create_plan_panel
 from components.artifacts.risk_analysis import risk_analysis_panel
 from components.artifacts.gap_analysis import gap_analysis_panel
 from components.artifacts.requirements import requirements_panel
@@ -76,9 +77,9 @@ def register_api_routes(rt, chat_service):
 
             try:
                 if hasattr(chat_service, 'process_message_sync'):
-                    result = await chat_service.process_message_sync(conversation_id, message)
+                    result = await chat_service.process_message_sync(conversation_id, message, user_email=user_email)
                 else:
-                    result = await chat_service.process_message(conversation_id, message)
+                    result = await chat_service.process_message(conversation_id, message, user_email=user_email)
 
                 response_text = result.get("response", "")
                 words = response_text.split(" ")
@@ -249,6 +250,14 @@ def register_api_routes(rt, chat_service):
             artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
             if artifact and artifact.get("data"):
                 panel = tender_comparison_panel(artifact["data"], language=language)
+                return HTMLResponse(to_xml(panel))
+            return Response("Artifact not found", status_code=404)
+
+        if artifact_type == "create_plan":
+            conv_id = request.query_params.get("conversation_id", "")
+            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
+            if artifact and artifact.get("data"):
+                panel = create_plan_panel(artifact["data"], language=language)
                 return HTMLResponse(to_xml(panel))
             return Response("Artifact not found", status_code=404)
 

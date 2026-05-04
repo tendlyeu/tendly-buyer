@@ -193,7 +193,8 @@
     "requirements": "Nõuded",
     "price_benchmark": "Hinna võrdlus",
     "rfp_draft": "Hankeplaani mustand",
-    "close": "Sulge paneel"
+    "close": "Sulge paneel",
+    "create_plan": "Uus hankeplaan"
   },
   "language": {
     "switch": "Keel"
@@ -277,5 +278,9 @@
     "document_content_placeholder": "Kleebige dokumendi sisu või märkmed siia...",
     "full_name_placeholder": "Täisnimi",
     "email_placeholder": "email@org.ee"
+  },
+  "create_plan": {
+    "created": "Loodud",
+    "open_plan": "Ava plaan"
   }
 }

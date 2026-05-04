@@ -30,6 +30,7 @@ import tools.gap_analysis
 import tools.requirements_extraction
 import tools.price_benchmark
 import tools.rfp_draft
+import tools.create_plan
 # Seller-side tools (winning_strategy, competitor_intel) are intentionally
 # NOT imported — Tendly Buyer is a buyer-only product and bidding strategy /
 # competitor analysis don't belong on this surface.
@@ -75,8 +76,8 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
 ### Output JSON schema
 
 {
-  "intent": "search" | "tender_detail" | "general_knowledge" | "market_intelligence" | "company_search" | "tender_compare" | "risk_analysis" | "gap_analysis" | "requirements" | "price_benchmark" | "rfp_draft",
-  "rfp_description": "string or null (full text of what user wants to procure, for rfp_draft intent)",
+  "intent": "search" | "tender_detail" | "general_knowledge" | "market_intelligence" | "company_search" | "tender_compare" | "risk_analysis" | "gap_analysis" | "requirements" | "price_benchmark" | "rfp_draft" | "create_plan",
+  "rfp_description": "string or null (full text of what user wants to procure, for rfp_draft and create_plan intents)",
   "needs_search": true/false,
   "country_codes": ["EE","GB","LV","PL","LT","FR"],
   "industry": "string or null",
@@ -84,18 +85,31 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
   "keywords": ["keyword1","keyword2",...],
   "min_value": null or number,
   "max_value": null or number,
+  "estimated_value": null or number,
   "tender_id": null or number,
   "tender_ids": null or [number, number],
   "company_name": "string or null",
-  "search_type": "industry"|"topic"|"location"|"value"|"tender_id"|"general"|"company"|"tender_compare"
+  "search_type": "industry"|"topic"|"location"|"value"|"tender_id"|"general"|"company"|"tender_compare"|"create_plan"
 }
 
 ### Audience
-This assistant serves **public-sector procurement buyers** (not bidders).
-NEVER classify queries as "winning_strategy" or "competitor_detail" — those
-are seller-side concepts. If a user asks for bidding strategy or competitor
-analysis, treat it as "general_knowledge" and explain politely that this
-platform is for buyers preparing their own procurements.
+This assistant serves **public-sector procurement BUYERS** preparing
+their own procurements — never bidders. Every other tender in the system
+is reference material that helps a buyer benchmark, draft, or set a fair
+budget for their OWN procurement.
+
+NEVER classify queries as "winning_strategy" or "competitor_detail" —
+those are seller-side concepts. If a user asks for bidding strategy or
+competitor analysis, treat it as "general_knowledge" and explain politely
+that this platform is for buyers preparing their own procurements.
+
+When the user says things like "create a plan", "start a procurement",
+"new tender for X", "I need to procure Y", "set up a hange for Z",
+"loo plaan", "uus hange" → classify as "create_plan" and put the full
+description in rfp_description plus any structured fields you can extract
+(estimated_value, industry, cpv_divisions). When the user says "draft an
+RFP" or "generate the document" without asking to create the plan, use
+"rfp_draft" instead.
 
 ### Intent rules
 
@@ -109,7 +123,8 @@ platform is for buyers preparing their own procurements.
 - "gap_analysis": user asks about gaps or discrepancies in a tender's documents — requires a tender_id
 - "requirements": user asks to see/extract requirements from a specific tender — requires a tender_id
 - "price_benchmark": user asks about prices, costs, market rates, budgets, or "what is a fair price for X?" — triggers price benchmarking against UK tender data
-- "rfp_draft": user asks to draft, create, or generate an RFP, tender document, or procurement notice — triggers AI-powered RFP generation. Set rfp_description to the user's procurement need description.
+- "rfp_draft": user asks to DRAFT a tender / RFP document for review (no DB persistence yet) — triggers AI-powered RFP generation as a canvas artifact only. Set rfp_description to the user's procurement need description.
+- "create_plan": user asks to CREATE / START / SET UP a procurement plan in the buyer's workspace ("create a tender for...", "new procurement for...", "start a hange for..."). Persists the plan into /procurements with a 5-step workflow. Set rfp_description to the user's procurement need description and extract estimated_value if mentioned.
 
 ### CPV Division Reference (use first 2 digits)
 
@@ -254,7 +269,19 @@ User: "help me draft an RFP for office renovation for 200 people"
 
 User: "create a tender document for security guard services at 3 government buildings"
 → Step 1: English. Step 2: none. Step 3: security → CPV 79. Step 4: security guards. Step 5: none. Step 6: none. Step 7: none.
-{"intent":"rfp_draft","needs_search":false,"country_codes":[],"industry":"security","cpv_divisions":["79"],"keywords":["security","guard"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":"Security guard services at 3 government buildings"}"""
+{"intent":"rfp_draft","needs_search":false,"country_codes":[],"industry":"security","cpv_divisions":["79"],"keywords":["security","guard"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":"Security guard services at 3 government buildings"}
+
+User: "create a procurement plan for IT support, 50,000 EUR, 2-year contract"
+→ Step 1: English. Step 2: none. Step 3: IT → CPV 72. Step 4: IT support. Step 5: 50,000. Step 6: 2-year. Step 7: none.
+{"intent":"create_plan","needs_search":false,"country_codes":[],"industry":"information technology","cpv_divisions":["72"],"keywords":["IT","support"],"min_value":null,"max_value":null,"estimated_value":50000,"tender_id":null,"company_name":null,"search_type":"create_plan","rfp_description":"IT support, 2-year contract, 50,000 EUR"}
+
+User: "Start a new procurement for office cleaning, 30k for 12 months"
+→ Step 1: English. Step 2: none. Step 3: cleaning → CPV 90. Step 4: cleaning. Step 5: 30,000. Step 6: 12 months. Step 7: none.
+{"intent":"create_plan","needs_search":false,"country_codes":[],"industry":"cleaning","cpv_divisions":["90"],"keywords":["cleaning","office"],"min_value":null,"max_value":null,"estimated_value":30000,"tender_id":null,"company_name":null,"search_type":"create_plan","rfp_description":"Office cleaning services, 12-month contract, 30,000 EUR"}
+
+User: "Loo uus hankeplaan IT-süsteemi hoolduseks 120 000 eurot"
+→ Step 1: Estonian. Step 2: none. Step 3: IT → CPV 72. Step 4: IT system maintenance. Step 5: 120,000. Step 6: none. Step 7: none.
+{"intent":"create_plan","needs_search":false,"country_codes":[],"industry":"information technology","cpv_divisions":["72"],"keywords":["IT","hooldus","süsteem"],"min_value":null,"max_value":null,"estimated_value":120000,"tender_id":null,"company_name":null,"search_type":"create_plan","rfp_description":"IT-süsteemi hooldus, 120 000 EUR"}"""
 
 # ---------------------------------------------------------------------------
 # Gemini context cache for QUERY_ANALYSIS_SYSTEM_PROMPT
@@ -293,26 +320,32 @@ def _get_or_create_query_cache(client):
         return None
 
 
-RESPONSE_SYSTEM_PROMPT = """You are Tendly AI, an expert assistant for government procurement and tender search.
-You help users find and analyze government tenders from Estonia, UK, Latvia, Poland, Lithuania, and France.
+RESPONSE_SYSTEM_PROMPT = """You are Tendly Buyer AI, an assistant for **public-sector procurement BUYERS** (not bidders).
+
+Your job is to help procurement officers PREPARE THEIR OWN procurements:
+draft RFPs, set fair budgets, find vendor candidates, benchmark against
+similar past tenders from Estonia, UK, Latvia, Poland, Lithuania, France.
+
+NEVER offer "winning strategies", "competitor analysis", "win probabilities",
+or any other bidder-side framing. The user is the BUYER who issues tenders;
+they do not bid on them. If the user asks for bidding advice, gently redirect:
+"this platform is for buyers preparing procurements — the seller-side tooling
+lives elsewhere".
 
 Language rules:
-- Respond in the same language the user writes in. If the user writes in Estonian, respond in Estonian. If in French, respond in French. If in Latvian, respond in Latvian. If in Lithuanian, respond in Lithuanian. If in Polish, respond in Polish. Default to English if unclear.
+- Respond in the same language the user writes in. Estonian → Estonian, French → French, Latvian → Latvian, Lithuanian → Lithuanian, Polish → Polish. Default to English if unclear.
 
 Response guidelines:
 - Use markdown formatting. Be concise but insightful.
-- When tender results are provided, write a brief analytical summary (3-5 sentences) highlighting:
-  * How many results found and key patterns (countries, industries, value ranges)
-  * Notable opportunities (high value, approaching deadlines, EU funded, high quality score)
-  * If quality scores are available, mention the average quality and highlight top-scoring opportunities
-  * If competition data is available (offer counts from past similar tenders), mention competition levels
-  * Brief advice relevant to the search
-- When a quick stats summary is provided, incorporate those insights naturally into your response.
-- Do NOT list individual tenders in the text - the UI renders them as cards separately.
-- If no tenders found, explain possible reasons and suggest 2-3 alternative searches.
-- For general knowledge questions, give accurate procurement/tendering answers.
-- For market intelligence, provide data-driven insights when context is available.
-- End with a "**Try also:**" section with 2-3 related search suggestions that are contextually relevant to what the user searched for. Make them specific and actionable (e.g., if searching IT in Estonia, suggest "IT tenders in Latvia" or "Software development tenders" or "IT consulting above 50,000 EUR").
+- When tender results are shown, treat them as REFERENCE MATERIAL the buyer can learn from when drafting their own procurement. Highlight:
+  * How many comparable past tenders found, value ranges, common CPV codes
+  * What evaluation criteria peers used, typical contract durations, deadlines
+  * Useful patterns for the user's own draft (price/quality weighting, qualification thresholds)
+- When a quick stats summary is provided, incorporate those insights naturally.
+- Do NOT list individual tenders in the text — the UI renders them as cards separately.
+- If no tenders found, explain possible reasons and suggest 2-3 alternative benchmarking searches.
+- For general knowledge questions, give accurate procurement/tendering answers from the BUYER perspective (legal procedure, evaluation methodology, document structure).
+- End with a "**Try also:**" section with 2-3 contextually relevant follow-up actions (e.g. "Draft an RFP for…", "Create a procurement plan for…", "Benchmark IT support contracts in Latvia").
 - Do NOT fabricate tender data. Only reference tenders from the provided search results.
 - Format currency with symbols. Highlight deadlines."""
 
@@ -548,6 +581,12 @@ class TendlyChatService:
             if tool:
                 return tool.execute(query_info, {"chat_service": self})
 
+        # Create procurement plan — persists a row in tendly.procurement_plans
+        if intent == "create_plan":
+            tool = tool_registry.get("create_plan")
+            if tool:
+                return tool.execute(query_info, {"chat_service": self})
+
         # Company search (list view, no canvas artifact)
         if intent == "company_search" and query_info.get("needs_search", False):
             tool = tool_registry.get("search_companies")
@@ -618,9 +657,13 @@ class TendlyChatService:
             session.close()
 
     async def process_message(
-        self, conversation_id: str, user_message: str
+        self, conversation_id: str, user_message: str,
+        user_email: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
         """Process a user message and yield SSE-formatted chunks."""
+        # Stash for tools that need to know who's logged in (e.g. create_plan
+        # which writes to procurement_plans scoped by org_id = user_email).
+        self._current_user_email = user_email
         # Ensure conversation exists in DB
         session = get_tendly_session()
         try:
@@ -634,6 +677,7 @@ class TendlyChatService:
                     title="New conversation",
                     messages=[],
                     artifacts=[],
+                    user_email=user_email or "",
                 )
                 session.add(ctx)
                 session.commit()
@@ -672,8 +716,9 @@ class TendlyChatService:
             # is required (the LLM sets needs_search=false for these because
             # they don't filter the tenders table).
             artifact_intents = {
-                "rfp_draft", "tender_compare", "risk_analysis",
-                "gap_analysis", "requirements", "price_benchmark",
+                "rfp_draft", "create_plan", "tender_compare",
+                "risk_analysis", "gap_analysis", "requirements",
+                "price_benchmark",
             }
             if (query_info.get("needs_search", False)
                     or intent in ("company_search", "tender_detail")
@@ -744,13 +789,14 @@ class TendlyChatService:
             self._append_message(conversation_id, error_msg_dict)
 
     # Non-streaming convenience method (for API/testing)
-    async def process_message_sync(self, conversation_id: str, user_message: str) -> Dict:
+    async def process_message_sync(self, conversation_id: str, user_message: str,
+                                    user_email: Optional[str] = None) -> Dict:
         """Non-streaming variant that collects the full response."""
         response_text = ""
         tenders = []
         artifact = None
         event_type = None
-        async for chunk in self.process_message(conversation_id, user_message):
+        async for chunk in self.process_message(conversation_id, user_message, user_email=user_email):
             for line in chunk.strip().split("\n"):
                 if line.startswith("event: "):
                     event_type = line[7:]

@@ -198,7 +198,8 @@
     "requirements": "Requirements",
     "price_benchmark": "Price Benchmarks",
     "rfp_draft": "RFP Draft",
-    "close": "Close panel"
+    "close": "Close panel",
+    "create_plan": "New procurement plan"
   },
   "language": {
     "switch": "Language"
@@ -282,5 +283,9 @@
     "document_content_placeholder": "Paste document content or notes here...",
     "full_name_placeholder": "Full name",
     "email_placeholder": "email@org.ee"
+  },
+  "create_plan": {
+    "created": "Created",
+    "open_plan": "Open plan"
   }
 }

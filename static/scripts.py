@@ -800,6 +800,8 @@ function sendMessage(text) {
                                 var artConvId = parsed.conversation_id || '';
                                 if (artType === 'tender_detail' && artTenderId) {
                                     showTenderDetail(artTenderId);
+                                } else if (artType === 'create_plan' && artId) {
+                                    openArtifact(artType, artId, _t('canvas.create_plan', 'New procurement plan'), artConvId);
                                 } else if (artType === 'tender_comparison' && artId) {
                                     openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'), artConvId);
                                 } else if (artType === 'risk_analysis' && artId) {

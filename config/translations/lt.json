@@ -143,5 +143,12 @@
   "procurements": {
     "evaluation_criteria": "Vertinimo kriterijai",
     "requirements": "Reikalavimai"
+  },
+  "create_plan": {
+    "created": "Sukurta",
+    "open_plan": "Atidaryti planą"
+  },
+  "canvas": {
+    "create_plan": "Naujas pirkimo planas"
   }
 }
