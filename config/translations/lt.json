@@ -39,7 +39,8 @@
     "copied": "Nukopijuota",
     "copy_link": "Kopijuoti nuorodą",
     "link_copied": "Nuoroda nukopijuota",
-    "messages_remaining": "{remaining} iš {limit} žinučių liko"
+    "messages_remaining": "{remaining} iš {limit} žinučių liko",
+    "attach_file": "Pridėti failą"
   },
   "tender": {
     "matching": "Atitinkantys konkursai",

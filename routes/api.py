@@ -121,6 +121,95 @@ def register_api_routes(rt, chat_service):
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
+    @rt("/api/chat/attach")
+    @require_auth
+    async def post(request):
+        """Attach a file uploaded from the chat input to the conversation's
+        most recently-created procurement plan.
+
+        Returns JSON: {ok, plan_id, plan_title, doc_id, filename, content_chars}
+        On failure (no plan in conversation, bad file): {ok:false, error}
+        """
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        form = await request.form()
+        conversation_id = form.get("conversation_id", "")
+        uploaded = form.get("file")
+
+        if not uploaded or not hasattr(uploaded, "filename") or not uploaded.filename:
+            return JSONResponse({"ok": False, "error": "no_file"}, status_code=400)
+        if not conversation_id:
+            return JSONResponse({"ok": False, "error": "no_conversation"}, status_code=400)
+
+        # Find the most recently-created plan attached to THIS conversation.
+        # We look at the conversation's stored artifacts for a "create_plan"
+        # entry — that's the plan the user just made via chat. If there's
+        # no such artifact, fall back to the user's most recent plan
+        # overall (any plan they own).
+        from services.procurement_service import (
+            list_plans, add_document, get_plan,
+        )
+        target_plan_id = None
+        target_plan_title = None
+        try:
+            artifacts = chat_service.get_conversation_artifacts(conversation_id) or []
+        except Exception:
+            artifacts = []
+        for art in reversed(artifacts):
+            if art.get("type") == "create_plan":
+                pid = (art.get("data") or {}).get("plan_id")
+                if pid:
+                    plan = get_plan(pid)
+                    if plan and plan.get("organization_id") == user_email:
+                        target_plan_id = pid
+                        target_plan_title = plan.get("title")
+                        break
+
+        if not target_plan_id:
+            # Fall back: most-recent plan the user owns
+            plans = list_plans(organization_id=user_email)
+            if plans:
+                target_plan_id = plans[0].get("id")
+                target_plan_title = plans[0].get("title")
+
+        if not target_plan_id:
+            return JSONResponse({
+                "ok": False,
+                "error": "no_plan",
+                "message": "No procurement plan found in this conversation. Ask the agent to create one first, then attach files.",
+            }, status_code=400)
+
+        # Persist via FileProcessor (same path as /api/procurements/.../documents)
+        from services.file_processor import FileProcessor
+        try:
+            result = await FileProcessor().process_upload(uploaded, target_plan_id)
+        except ValueError as e:
+            return JSONResponse({"ok": False, "error": "bad_file", "message": str(e)}, status_code=400)
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": "upload_failed", "message": str(e)}, status_code=500)
+
+        doc = add_document(
+            title=uploaded.filename,
+            document_type="other",
+            file_name=result["file_name"],
+            file_size=result["file_size"],
+            mime_type=result["mime_type"],
+            content_text=result["content_text"],
+            procurement_plan_id=target_plan_id,
+            uploaded_by_email=user_email,
+            organization_id=user_email,
+            file_path=result["file_path"],
+        )
+
+        return JSONResponse({
+            "ok": True,
+            "plan_id": target_plan_id,
+            "plan_title": target_plan_title,
+            "doc_id": doc.get("id"),
+            "filename": uploaded.filename,
+            "content_chars": len(result.get("content_text") or ""),
+        })
+
     @rt("/api/conversations")
     def get(request):
         auth = get_auth_from_request(request)

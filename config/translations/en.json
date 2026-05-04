@@ -140,7 +140,8 @@
     "copied": "Copied",
     "copy_link": "Copy link",
     "link_copied": "Link copied",
-    "messages_remaining": "{remaining} of {limit} messages remaining"
+    "messages_remaining": "{remaining} of {limit} messages remaining",
+    "attach_file": "Attach file"
   },
   "tender": {
     "matching": "Matching tenders",

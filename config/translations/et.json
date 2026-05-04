@@ -135,7 +135,8 @@
     "copied": "Kopeeritud",
     "copy_link": "Kopeeri link",
     "link_copied": "Link kopeeritud",
-    "messages_remaining": "{remaining}/{limit} sõnumit jäänud"
+    "messages_remaining": "{remaining}/{limit} sõnumit jäänud",
+    "attach_file": "Lisa fail"
   },
   "tender": {
     "matching": "Sobivad hanked",

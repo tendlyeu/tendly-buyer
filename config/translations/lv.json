@@ -39,7 +39,8 @@
     "copied": "Nokopēts",
     "copy_link": "Kopēt saiti",
     "link_copied": "Saite nokopēta",
-    "messages_remaining": "{remaining} no {limit} ziņojumiem atlikuši"
+    "messages_remaining": "{remaining} no {limit} ziņojumiem atlikuši",
+    "attach_file": "Pievienot failu"
   },
   "tender": {
     "matching": "Atbilstoši iepirkumi",

@@ -111,6 +111,50 @@ description in rfp_description plus any structured fields you can extract
 RFP" or "generate the document" without asking to create the plan, use
 "rfp_draft" instead.
 
+### Multi-turn plan creation (create_plan only)
+
+The user often won't give you everything at once. Plan creation is
+**conversational**: gather info across turns and only persist when ready.
+
+When intent is "create_plan", also fill these fields:
+
+  "plan_draft": {
+    "title": null | "string",
+    "description": null | "string",
+    "category": null | "string (IT, construction, services, healthcare, ...)",
+    "cpv_code": null | "8-digit string",
+    "estimated_value": null | number (EUR),
+    "duration_months": null | number,
+    "evaluation_criteria": [] | [{"name":"Hind","weight":50,"description":"…"}, …],
+    "requirements": [] | [{"text":"ISO 27001","priority":"must"}, …]
+  },
+  "plan_ready": true | false,
+  "plan_missing_field": null | "title" | "estimated_value" | "category" | "criteria" | "requirements" | "confirm",
+  "plan_question": null | "single specific follow-up question in user's language"
+
+Rules:
+- MERGE info from the conversation transcript with new info in the
+  latest message. If the user already said "IT support 50k" earlier and
+  now says "title is City Hall IT support", combine into
+  plan_draft={title:"City Hall IT support", category:"IT",
+  estimated_value:50000}.
+- "plan_ready" = true ONLY when ALL of these are set:
+  title (non-empty), estimated_value (>0), category, AND the user has
+  explicitly confirmed (said "yes", "go ahead", "create it", "loo see
+  ära", "tee see"). Otherwise plan_ready=false.
+- When plan_ready=false, set plan_missing_field to the SINGLE most
+  important next thing to ask, and write plan_question as a friendly
+  one-line question in the user's language. Examples:
+    title missing  → "What should we call this procurement?"
+    value missing  → "What's your estimated budget for this in EUR?"
+    confirm        → "I have everything I need. Should I create the plan now?"
+- If the user later says "go ahead" / "yes" / "create it" /
+  "tee see ära" / "loo plaan ära" — set plan_ready=true.
+- NEVER ask multiple questions in plan_question; one focused question
+  per turn. Once title is in, ask budget. Once budget is in, ask
+  category. Once everything basic is in, ASK FOR CONFIRMATION before
+  creating.
+
 ### Intent rules
 
 - "search": user wants to find tenders (keywords, industry, country, CPV, value)
@@ -535,6 +579,17 @@ class TendlyChatService:
         finally:
             session.close()
 
+    def get_conversation_artifacts(self, conversation_id: str) -> list:
+        """Return all artifacts for a conversation, oldest first."""
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            return list(ctx.artifacts or []) if ctx else []
+        finally:
+            session.close()
+
     # ======================================================================
     # Tool dispatch
     # ======================================================================
@@ -707,7 +762,9 @@ class TendlyChatService:
         try:
             # --- Stage 1: Query understanding ---
             yield _sse_event("status", {"status": "thinking", "message": "Understanding your query..."})
-            query_info = await self._analyze_query(user_message)
+            # Pass conversation history so multi-turn plan creation works:
+            # the user can give title/budget/category across separate turns.
+            query_info = await self._analyze_query(user_message, history=conv_messages[:-1])
             intent = query_info.get("intent", "search")
 
             # --- Stage 2: Tool dispatch ---
@@ -822,19 +879,45 @@ class TendlyChatService:
     # Query analysis
     # ======================================================================
 
-    async def _analyze_query(self, user_message: str) -> Dict:
-        """Use Gemini to extract structured search parameters from the user query."""
+    async def _analyze_query(self, user_message: str, history: Optional[List[Dict]] = None) -> Dict:
+        """Use Gemini to extract structured search parameters from the user query.
+
+        When `history` is provided (recent conversation messages), the analyzer
+        can stitch together info across turns — important for multi-turn
+        plan creation where the user may give the title, value, and category
+        in separate messages."""
+        # If we have history, prepend a compact transcript to the user message
+        # so Gemini sees prior context. Cap to last 6 messages to keep prompts
+        # cheap.
+        if history:
+            recent = history[-6:]
+            transcript = "\n".join(
+                f"{m.get('role','user').upper()}: {m.get('content','')[:400]}"
+                for m in recent if m.get("content")
+            )
+            framed = (
+                "Recent conversation transcript (most recent last):\n"
+                f"{transcript}\n\n"
+                f"Latest user message: {user_message}\n\n"
+                "When classifying, consider the transcript: e.g. if the user "
+                "earlier asked to create a plan and is now answering your "
+                "follow-up question (giving a title or budget), still classify "
+                "as `create_plan` and merge the new field into plan_draft."
+            )
+        else:
+            framed = user_message
+
         cache_name = _get_or_create_query_cache(self.llm)
         if cache_name:
             result = await self.llm.chat_completion_async(
-                messages=[{"role": "user", "content": user_message}],
+                messages=[{"role": "user", "content": framed}],
                 system_prompt=None,
                 cached_content=cache_name,
                 temperature=0.1,
             )
         else:
             result = await self.llm.chat_completion_async(
-                messages=[{"role": "user", "content": user_message}],
+                messages=[{"role": "user", "content": framed}],
                 system_prompt=QUERY_ANALYSIS_SYSTEM_PROMPT,
                 temperature=0.1,
             )
@@ -1043,6 +1126,17 @@ class TendlyChatService:
         else:
             sys_prompt = RESPONSE_SYSTEM_PROMPT
 
+        # Detect "gathering" phase: create_plan didn't yet have enough info
+        # and is asking the user a follow-up question.
+        gathering_state = None
+        if intent == "create_plan" and not artifact_type and artifact_summary:
+            try:
+                parsed = json.loads(artifact_summary)
+                if isinstance(parsed, dict) and parsed.get("phase") == "gathering":
+                    gathering_state = parsed
+            except Exception:
+                pass
+
         # When an analytical tool produced an artifact, tell the model so it
         # writes a short pointer to the canvas instead of generic deflection
         # text like "I cannot draft an RFP". The canvas already holds the
@@ -1059,9 +1153,32 @@ class TendlyChatService:
                 "output. End with a 'Try also:' section with 2-3 contextually "
                 "relevant follow-ups."
             )
+        elif gathering_state:
+            # Multi-turn plan creation: agent is in info-gathering mode.
+            sys_prompt = sys_prompt + (
+                "\n\nIMPORTANT: You are in MULTI-TURN PLAN CREATION mode. "
+                "The user wants to create a procurement plan but you don't "
+                "yet have enough information. Your job:\n"
+                "  1) Briefly ACKNOWLEDGE what's been gathered so far "
+                "(echo the title / value / category back so the user feels "
+                "heard) — one short line.\n"
+                "  2) Ask the SINGLE follow-up question provided in the "
+                "tool's `question` field, in the user's language. Don't "
+                "ask multiple questions. Don't propose alternatives.\n"
+                "  3) NO 'Try also' section in this mode — we're focused on "
+                "completing one plan.\n"
+                "  4) NEVER claim the plan has been created. It hasn't yet."
+            )
 
         context_parts = [f"User query: {user_message}"]
         context_parts.append(f"Detected intent: {intent}")
+        if gathering_state:
+            context_parts.append(
+                f"\nPlan creation in progress.\n"
+                f"  Gathered so far: {json.dumps(gathering_state.get('gathered', {}), default=str)}\n"
+                f"  Missing field: {gathering_state.get('missing','?')}\n"
+                f"  Question to ask: {gathering_state.get('question','?')}"
+            )
         if artifact_type:
             context_parts.append(f"\nArtifact produced ({artifact_type}):")
             if artifact_summary:

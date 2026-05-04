@@ -669,13 +669,91 @@ function createThinkingIndicator() {
     return result.element;
 }
 
-function sendMessage(text) {
-    if (!text.trim() || isStreaming) return;
+// Track a pending file selected via the chat paperclip button. Cleared
+// after each send (whether the upload succeeded or not).
+window._chatPendingFile = null;
+
+function _renderAttachmentChip() {
+    var chip = qs('#chat-attachment-chip');
+    if (!chip) return;
+    var f = window._chatPendingFile;
+    if (!f) { chip.style.display = 'none'; chip.innerHTML = ''; return; }
+    chip.style.display = 'flex';
+    chip.innerHTML = '';
+    var name = document.createElement('span');
+    name.textContent = '📎 ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+    chip.appendChild(name);
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.title = 'Remove attachment';
+    remove.onclick = function() {
+        window._chatPendingFile = null;
+        var fileInput = qs('#chat-file-input');
+        if (fileInput) fileInput.value = '';
+        _renderAttachmentChip();
+    };
+    chip.appendChild(remove);
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'chat-file-input') {
+        var f = e.target.files && e.target.files[0];
+        if (f) { window._chatPendingFile = f; _renderAttachmentChip(); }
+    }
+});
+
+function _uploadPendingAttachment() {
+    var f = window._chatPendingFile;
+    if (!f) return Promise.resolve(null);
+    var fd = new FormData();
+    fd.append('file', f);
+    fd.append('conversation_id', activeConversationId || '');
+    return fetch('/api/chat/attach', { method: 'POST', body: fd })
+        .then(function(r) { return r.json().then(function(j){ j._http = r.status; return j; }); })
+        .catch(function(e) { return { ok: false, error: 'network', message: String(e) }; });
+}
+
+function sendMessage(text, _attachmentResult) {
+    if (!text.trim() && !window._chatPendingFile && !_attachmentResult) return;
+    if (isStreaming) return;
 
     // Client-side rate limit check (server also enforces)
     var rate = window.__RATE__ || {};
     if (rate.remaining === 0 && rate.limit !== -1) {
         showUpgradeModal(rate.tier);
+        return;
+    }
+
+    // If a file is queued and we haven't uploaded yet, upload first then
+    // re-enter sendMessage with the upload result so the chat message can
+    // mention the attached file.
+    if (window._chatPendingFile && !_attachmentResult) {
+        isStreaming = true;
+        var sendBtn = qs('#send-btn');
+        if (sendBtn) sendBtn.disabled = true;
+        _uploadPendingAttachment().then(function(res) {
+            window._chatPendingFile = null;
+            var fileInput = qs('#chat-file-input');
+            if (fileInput) fileInput.value = '';
+            _renderAttachmentChip();
+            isStreaming = false;
+            if (sendBtn) sendBtn.disabled = false;
+            // Compose a synthesised message that lets the agent know what
+            // happened so it can respond meaningfully.
+            var synth;
+            if (res && res.ok) {
+                var prefix = text.trim()
+                    ? text.trim() + '\n\n'
+                    : 'I have just attached a document.\n\n';
+                synth = prefix + '(System: file "' + res.filename + '" was attached to plan "' + (res.plan_title || '') + '" — '
+                      + (res.content_chars || 0) + ' characters of text extracted.)';
+            } else {
+                var err = (res && (res.message || res.error)) || 'unknown error';
+                synth = (text.trim() || 'I tried to attach a file.') + '\n\n(System: file upload failed: ' + err + ')';
+            }
+            sendMessage(synth, res || { ok: false });
+        });
         return;
     }
 

@@ -39,7 +39,8 @@
     "copied": "Skopiowano",
     "copy_link": "Kopiuj link",
     "link_copied": "Link skopiowany",
-    "messages_remaining": "{remaining} z {limit} wiadomości pozostało"
+    "messages_remaining": "{remaining} z {limit} wiadomości pozostało",
+    "attach_file": "Dodaj plik"
   },
   "tender": {
     "matching": "Pasujące przetargi",

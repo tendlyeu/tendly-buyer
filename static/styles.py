@@ -783,6 +783,43 @@ body {
 .send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 .send-btn svg { width: 18px; height: 18px; }
 
+.attach-btn {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.attach-btn:hover { background: #f3f4f6; color: #2563eb; }
+
+.chat-attachment-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin: 0 6px 6px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #1e40af;
+    width: fit-content;
+}
+.chat-attachment-chip button {
+    background: transparent;
+    border: none;
+    color: #1e40af;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+.chat-attachment-chip button:hover { color: #dc2626; }
+
 .input-hint {
     display: flex;
     align-items: center;

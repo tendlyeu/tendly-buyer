@@ -39,7 +39,8 @@
     "copied": "Copié",
     "copy_link": "Copier le lien",
     "link_copied": "Lien copié",
-    "messages_remaining": "{remaining} sur {limit} messages restants"
+    "messages_remaining": "{remaining} sur {limit} messages restants",
+    "attach_file": "Joindre un fichier"
   },
   "tender": {
     "matching": "Marchés correspondants",
