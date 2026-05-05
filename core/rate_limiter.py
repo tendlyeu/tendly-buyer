@@ -2,11 +2,12 @@
 Rate limiter for Tendly Chat.
 Tracks usage by IP (anonymous) and user email (authenticated).
 Limits:
-- Anonymous: 5 messages total
-- Free users (starter plan): 20 messages per day
+- Anonymous: 5 messages total (override with TENDLY_ANON_LIMIT)
+- Free users (starter plan): 20 messages per day (override with TENDLY_FREE_DAILY_LIMIT)
 - Paid users (professional/enterprise): Unlimited
 """
 
+import os
 import time
 from collections import defaultdict
 
@@ -15,9 +16,10 @@ from collections import defaultdict
 _ip_usage = defaultdict(list)      # IP -> list of timestamps
 _user_usage = defaultdict(list)    # email -> list of timestamps
 
-# Limits
-ANONYMOUS_LIMIT = 5                 # Total messages for non-logged-in users
-FREE_USER_DAILY_LIMIT = 20          # Messages per day for free users
+# Limits — env-overridable so staging / load tests can lift the cap
+# without code changes.
+ANONYMOUS_LIMIT = int(os.environ.get("TENDLY_ANON_LIMIT", "5"))
+FREE_USER_DAILY_LIMIT = int(os.environ.get("TENDLY_FREE_DAILY_LIMIT", "20"))
 PAID_PLANS = {"professional", "enterprise"}
 
 # Time window: 24 hours in seconds
