@@ -139,8 +139,11 @@ def register_api_routes(rt, chat_service):
 
         if not uploaded or not hasattr(uploaded, "filename") or not uploaded.filename:
             return JSONResponse({"ok": False, "error": "no_file"}, status_code=400)
+        # If the user attaches a file as their first action (no chat sent yet,
+        # so the JS doesn't have an activeConversationId), spin up a new
+        # conversation here so the file has somewhere to live.
         if not conversation_id:
-            return JSONResponse({"ok": False, "error": "no_conversation"}, status_code=400)
+            conversation_id = chat_service.create_conversation(user_email=user_email)
 
         # Find the most recently-created plan attached to THIS conversation.
         # We look at the conversation's stored artifacts for a "create_plan"
@@ -204,6 +207,7 @@ def register_api_routes(rt, chat_service):
 
         return JSONResponse({
             "ok": True,
+            "conversation_id": conversation_id,
             "plan_id": target_plan_id,
             "plan_title": target_plan_title,
             "doc_id": doc.get("id"),

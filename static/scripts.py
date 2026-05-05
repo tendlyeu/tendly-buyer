@@ -652,6 +652,15 @@ function _uploadPendingAttachment() {
     fd.append('conversation_id', activeConversationId || '');
     return fetch('/api/chat/attach', { method: 'POST', body: fd })
         .then(function(r) { return r.json().then(function(j){ j._http = r.status; return j; }); })
+        .then(function(res) {
+            // The endpoint may have created a fresh conversation when none
+            // was active. Pick that up so subsequent chat messages land in
+            // the same thread (and the canvas can fetch the right artifacts).
+            if (res && res.conversation_id && !activeConversationId) {
+                activeConversationId = res.conversation_id;
+            }
+            return res;
+        })
         .catch(function(e) { return { ok: false, error: 'network', message: String(e) }; });
 }
 
