@@ -46,6 +46,10 @@ def register_api_routes(rt, chat_service):
     async def post(request):
         data = await request.json()
         conversation_id = data.get("conversation_id")
+        # Authoritative UI language (cookie / query-param). Used as a hard
+        # signal for the LLM so a one-word "Hi" with the picker on English
+        # doesn't drift to Estonian.
+        ui_language = get_language_from_request(request)
         message = data.get("message", "").strip()
 
         if not message:
@@ -78,9 +82,9 @@ def register_api_routes(rt, chat_service):
 
             try:
                 if hasattr(chat_service, 'process_message_sync'):
-                    result = await chat_service.process_message_sync(conversation_id, message, user_email=user_email)
+                    result = await chat_service.process_message_sync(conversation_id, message, user_email=user_email, ui_language=ui_language)
                 else:
-                    result = await chat_service.process_message(conversation_id, message, user_email=user_email)
+                    result = await chat_service.process_message(conversation_id, message, user_email=user_email, ui_language=ui_language)
 
                 response_text = result.get("response", "")
                 words = response_text.split(" ")

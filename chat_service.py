@@ -837,11 +837,18 @@ class TendlyChatService:
     async def process_message(
         self, conversation_id: str, user_message: str,
         user_email: Optional[str] = None,
+        ui_language: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
-        """Process a user message and yield SSE-formatted chunks."""
+        """Process a user message and yield SSE-formatted chunks.
+
+        ui_language is the authoritative UI-picker / cookie language code
+        (en/et/lv/lt/pl/fr). When set, _generate_response uses it as a hard
+        constraint so a single ambiguous word like "Hi" doesn't drift to
+        whatever language the LLM defaults to."""
         # Stash for tools that need to know who's logged in (e.g. create_plan
         # which writes to procurement_plans scoped by org_id = user_email).
         self._current_user_email = user_email
+        self._current_ui_language = ui_language
         # Ensure conversation exists in DB
         session = get_tendly_session()
         try:
@@ -934,6 +941,7 @@ class TendlyChatService:
                 artifact_type=tool_result.artifact_type,
                 artifact_summary=tool_result.summary,
                 artifact_data=tool_result.artifact_data,
+                ui_language=ui_language,
             )
 
             # Emit response text
@@ -970,13 +978,16 @@ class TendlyChatService:
 
     # Non-streaming convenience method (for API/testing)
     async def process_message_sync(self, conversation_id: str, user_message: str,
-                                    user_email: Optional[str] = None) -> Dict:
+                                    user_email: Optional[str] = None,
+                                    ui_language: Optional[str] = None) -> Dict:
         """Non-streaming variant that collects the full response."""
         response_text = ""
         tenders = []
         artifact = None
         event_type = None
-        async for chunk in self.process_message(conversation_id, user_message, user_email=user_email):
+        async for chunk in self.process_message(conversation_id, user_message,
+                                                 user_email=user_email,
+                                                 ui_language=ui_language):
             for line in chunk.strip().split("\n"):
                 if line.startswith("event: "):
                     event_type = line[7:]
@@ -1239,8 +1250,22 @@ class TendlyChatService:
         artifact_type: Optional[str] = None,
         artifact_summary: Optional[str] = None,
         artifact_data: Optional[Dict] = None,
+        ui_language: Optional[str] = None,
     ) -> str:
-        """Generate a natural-language response using Gemini."""
+        """Generate a natural-language response using Gemini.
+
+        ui_language is the UI-picker code (en/et/lv/lt/pl/fr). When the
+        user's message is too short to confidently detect a language
+        (e.g. "Hi", "ok", "yes"), we use ui_language as the authoritative
+        signal instead of letting the LLM drift toward whatever language
+        appears in the system prompt's RHS terminology."""
+
+        # Map picker code → human-readable name for the prompt
+        _LANG_NAME = {
+            "en": "English", "et": "Estonian", "lv": "Latvian",
+            "lt": "Lithuanian", "pl": "Polish", "fr": "French",
+        }
+        ui_lang_name = _LANG_NAME.get((ui_language or "").lower(), None)
 
         if intent == "company_search":
             sys_prompt = COMPANY_INTELLIGENCE_PROMPT
@@ -1248,6 +1273,29 @@ class TendlyChatService:
             sys_prompt = MARKET_INTELLIGENCE_PROMPT
         else:
             sys_prompt = RESPONSE_SYSTEM_PROMPT
+
+        # Hard language directive at the TOP of the prompt — overrides any
+        # language inference from the user message or RHS terminology in
+        # later sections. Without this, a one-word "Hi" with the picker on
+        # English drifted to Estonian because the prompt is full of
+        # Estonian legal terms.
+        if ui_lang_name:
+            sys_prompt = (
+                f"=== ABSOLUTE LANGUAGE RULE ===\n"
+                f"YOU MUST WRITE YOUR ENTIRE REPLY IN {ui_lang_name.upper()}.\n"
+                f"The user has set their interface language to "
+                f"{ui_lang_name}. Reply in {ui_lang_name} regardless of "
+                f"what language Estonian legal terms (RHS, Riigihangete "
+                f"seadus, hange, hankemenetlus) appear in this prompt — "
+                f"those are reference vocabulary you may CITE in "
+                f"{ui_lang_name} prose, NOT a directive to switch language. "
+                f"If the user's message is in a clearly different language, "
+                f"prefer that language; otherwise default to "
+                f"{ui_lang_name}. NEVER answer a short ambiguous greeting "
+                f"like 'Hi' / 'Hello' / 'Tere' / 'Salut' in a language "
+                f"other than {ui_lang_name}.\n"
+                f"===\n\n"
+            ) + sys_prompt
 
         # Detect "gathering" phase: create_plan didn't yet have enough info
         # and is asking the user a follow-up question.
