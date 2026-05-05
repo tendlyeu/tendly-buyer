@@ -1279,28 +1279,49 @@ class TendlyChatService:
         elif gathering_state:
             # Multi-turn plan creation: agent is in info-gathering mode.
             sys_prompt = sys_prompt + (
-                "\n\nIMPORTANT: You are in MULTI-TURN PLAN CREATION mode. "
-                "The user wants to create a procurement plan but you don't "
-                "yet have enough information. Your job:\n"
-                "  1) Briefly ACKNOWLEDGE what's been gathered so far "
-                "(echo the title / value / category back so the user feels "
-                "heard) — one short line.\n"
-                "  2) Ask the SINGLE follow-up question provided in the "
-                "tool's `question` field, in the user's language. Don't "
-                "ask multiple questions. Don't propose alternatives.\n"
-                "  3) NO 'Try also' section in this mode — we're focused on "
-                "completing one plan.\n"
-                "  4) NEVER claim the plan has been created. It hasn't yet."
+                "\n\n=== MULTI-TURN PLAN CREATION MODE ===\n"
+                "You are gathering details for a procurement plan. The user "
+                "has not yet given enough info to create it.\n\n"
+                "**LANGUAGE: REPLY IN THE EXACT LANGUAGE OF THE LATEST USER "
+                "MESSAGE.** If the latest user message is in English, reply "
+                "in English. If Estonian, reply in Estonian. Do NOT default "
+                "to Estonian just because earlier messages were Estonian. "
+                "Detect language from THIS message only.\n\n"
+                "**OUTPUT FORMAT (must follow exactly):**\n"
+                "1) One short conversational sentence acknowledging what "
+                "you have so far (e.g. 'Got it — IT support, €50,000.'). "
+                "Write this naturally in the user's language. DO NOT include "
+                "raw JSON, the literal words 'Gathered so far', "
+                "'Missing field', 'plan_draft', or 'Question to ask' — those "
+                "are internal labels for you only.\n"
+                "2) A blank line.\n"
+                "3) Exactly ONE follow-up question, written naturally as a "
+                "human would phrase it (the `Question to ask` below is just "
+                "a hint — rewrite it in the user's language and tone).\n\n"
+                "**HARD RULES:**\n"
+                " - NEVER paste the JSON or label strings into the chat.\n"
+                " - NEVER claim the plan has been created — it hasn't yet.\n"
+                " - NEVER add a 'Try also' section in this mode.\n"
+                " - NEVER ask multiple questions in one turn.\n\n"
+                "GOOD example reply (English user):\n"
+                "  Got it — IT support, €50,000 for 2 years.\n\n"
+                "  What category does this fall under (IT, services, ...)?\n\n"
+                "BAD example reply (don't do this):\n"
+                "  Käesolev tehing on planeerimisel.\n"
+                "  Senini kogutud info: {\"description\": \"...\"}\n"
+                "  Vajalik väli: title\n"
+                "  Küsimus: ..."
             )
 
         context_parts = [f"User query: {user_message}"]
         context_parts.append(f"Detected intent: {intent}")
         if gathering_state:
+            # Internal hints — the LLM must NOT echo these labels verbatim.
             context_parts.append(
-                f"\nPlan creation in progress.\n"
-                f"  Gathered so far: {json.dumps(gathering_state.get('gathered', {}), default=str)}\n"
-                f"  Missing field: {gathering_state.get('missing','?')}\n"
-                f"  Question to ask: {gathering_state.get('question','?')}"
+                f"\n[INTERNAL — do not paste this text into the reply.]\n"
+                f"  Plan-draft so far: {json.dumps(gathering_state.get('gathered', {}), default=str)}\n"
+                f"  Missing field hint: {gathering_state.get('missing','?')}\n"
+                f"  Suggested question (rewrite in user's language): {gathering_state.get('question','?')}"
             )
         if artifact_type:
             context_parts.append(f"\nArtifact produced ({artifact_type}):")
