@@ -594,78 +594,19 @@ function createMessageElement(role, content) {
 }
 
 function createThinkingIndicator() {
+    // ChatGPT-style typing indicator: just three pulsing dots inside the
+    // assistant's message bubble. No stepped checklist, no skeleton lines —
+    // it's distracting for buyers who just want the answer.
     var result = createMessageElement('ai', '');
     var indicator = document.createElement('div');
-    indicator.className = 'thinking-indicator';
-
-    var steps = [
-        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', text: _t('chat.understanding', 'Understanding your query') },
-        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>', text: _t('chat.searching', 'Searching tenders') },
-        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>', text: _t('chat.analyzing', 'Analyzing results') },
-    ];
-
-    var stepEls = [];
-    steps.forEach(function(s, idx) {
-        var step = document.createElement('div');
-        step.className = 'thinking-step';
-        step.style.animationDelay = (idx * 0.12) + 's';
-
-        var iconWrap = document.createElement('div');
-        iconWrap.className = 'thinking-step-icon';
-        iconWrap.innerHTML = s.icon;
-        step.appendChild(iconWrap);
-
-        var textEl = document.createElement('span');
-        textEl.className = 'thinking-step-text';
-        textEl.textContent = s.text;
-        step.appendChild(textEl);
-
-        var dots = document.createElement('span');
-        dots.className = 'thinking-dots-inline';
-        dots.style.display = 'none';
-        for (var d = 0; d < 3; d++) dots.appendChild(document.createElement('span'));
-        textEl.appendChild(dots);
-
-        indicator.appendChild(step);
-        stepEls.push({ el: step, dots: dots });
-    });
-
-    // Skeleton shimmer
-    var skeleton = document.createElement('div');
-    skeleton.className = 'thinking-skeleton';
-    for (var k = 0; k < 3; k++) {
-        var line = document.createElement('div');
-        line.className = 'skeleton-line';
-        skeleton.appendChild(line);
+    indicator.className = 'typing-indicator';
+    for (var i = 0; i < 3; i++) {
+        var dot = document.createElement('span');
+        dot.className = 'typing-dot';
+        indicator.appendChild(dot);
     }
-    indicator.appendChild(skeleton);
-
     result.textDiv.replaceWith(indicator);
-
-    // Animate through steps
-    var currentStep = 0;
-    function activateStep(idx) {
-        if (idx >= stepEls.length) return;
-        if (idx > 0) {
-            stepEls[idx - 1].el.classList.remove('active');
-            stepEls[idx - 1].el.classList.add('done');
-            stepEls[idx - 1].dots.style.display = 'none';
-            var checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
-            stepEls[idx - 1].el.querySelector('.thinking-step-icon').innerHTML = checkSvg;
-        }
-        stepEls[idx].el.classList.add('active');
-        stepEls[idx].dots.style.display = 'inline-flex';
-        currentStep = idx;
-    }
-
-    // Start first step immediately
-    setTimeout(function() { activateStep(0); }, 300);
-    // Progress to step 2 after 1.5s
-    var t1 = setTimeout(function() { activateStep(1); }, 1800);
-    // Progress to step 3 after 4s
-    var t2 = setTimeout(function() { activateStep(2); }, 4500);
-
-    result.element._thinkingTimers = [t1, t2];
+    result.element._thinkingTimers = [];
     return result.element;
 }
 
@@ -880,6 +821,8 @@ function sendMessage(text, _attachmentResult) {
                                     showTenderDetail(artTenderId);
                                 } else if (artType === 'create_plan' && artId) {
                                     openArtifact(artType, artId, _t('canvas.create_plan', 'New procurement plan'), artConvId);
+                                } else if (artType === 'legal_lookup' && artId) {
+                                    openArtifact(artType, artId, _t('canvas.legal_lookup', 'Legal source'), artConvId);
                                 } else if (artType === 'tender_comparison' && artId) {
                                     openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'), artConvId);
                                 } else if (artType === 'risk_analysis' && artId) {

@@ -111,19 +111,19 @@
     "members": "Team Members"
   },
   "welcome": {
-    "title": "Welcome to Tendly Chat",
-    "subtitle": "Your AI assistant for government procurement intelligence. Search tenders, analyze opportunities, and get insights across Estonia and United Kingdom.",
-    "suggestion_1_title": "Search tenders",
-    "suggestion_1_text": "IT tenders in Estonia",
-    "suggestion_2_title": "Explore markets",
-    "suggestion_2_text": "Construction opportunities in Latvia",
-    "suggestion_3_title": "Analyze opportunities",
-    "suggestion_3_text": "High-value medical tenders",
-    "suggestion_4_title": "Get insights",
-    "suggestion_4_text": "Compare IT markets across countries"
+    "title": "Hello, I'm your AI procurement officer",
+    "subtitle": "Tell me what you need to procure and I'll help you create the tender — from the description and budget to evaluation criteria, requirements, and Estonian Public Procurement Act compliance. I can also draft RFPs, find vendors, and benchmark fair budgets.",
+    "suggestion_1_title": "Create a tender",
+    "suggestion_1_text": "I need to procure IT support for the city",
+    "suggestion_2_title": "Draft an RFP",
+    "suggestion_2_text": "Help me write the technical specs",
+    "suggestion_3_title": "Set a fair budget",
+    "suggestion_3_text": "What should road maintenance cost?",
+    "suggestion_4_title": "Find vendors",
+    "suggestion_4_text": "Who can deliver this in Estonia?"
   },
   "chat": {
-    "placeholder": "Search tenders, ask about procurement...",
+    "placeholder": "Describe what you want to procure...",
     "thinking": "Understanding your query...",
     "understanding": "Understanding your query",
     "searching": "Searching tenders",
@@ -134,7 +134,7 @@
     "you": "You",
     "tendly_ai": "Tendly AI",
     "stream_error": "Sorry, something went wrong. Please try again.",
-    "disclaimer": "Tendly Chat searches across Estonia and United Kingdom. Results are for informational purposes.",
+    "disclaimer": "Tendly Buyer drafts plans under Estonian Public Procurement Act (RHS 2017). Review before publishing.",
     "enter_to_send": "to send",
     "copy": "Copy",
     "copied": "Copied",
@@ -200,7 +200,8 @@
     "price_benchmark": "Price Benchmarks",
     "rfp_draft": "RFP Draft",
     "close": "Close panel",
-    "create_plan": "New procurement plan"
+    "create_plan": "New procurement plan",
+    "legal_lookup": "Legal source"
   },
   "language": {
     "switch": "Language"

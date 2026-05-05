@@ -31,6 +31,7 @@ import tools.requirements_extraction
 import tools.price_benchmark
 import tools.rfp_draft
 import tools.create_plan
+import tools.legal_lookup
 # Seller-side tools (winning_strategy, competitor_intel) are intentionally
 # NOT imported — Tendly Buyer is a buyer-only product and bidding strategy /
 # competitor analysis don't belong on this surface.
@@ -76,7 +77,7 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
 ### Output JSON schema
 
 {
-  "intent": "search" | "tender_detail" | "general_knowledge" | "market_intelligence" | "company_search" | "tender_compare" | "risk_analysis" | "gap_analysis" | "requirements" | "price_benchmark" | "rfp_draft" | "create_plan",
+  "intent": "search" | "tender_detail" | "general_knowledge" | "market_intelligence" | "company_search" | "tender_compare" | "risk_analysis" | "gap_analysis" | "requirements" | "price_benchmark" | "rfp_draft" | "create_plan" | "legal_lookup",
   "rfp_description": "string or null (full text of what user wants to procure, for rfp_draft and create_plan intents)",
   "needs_search": true/false,
   "country_codes": ["EE","GB","LV","PL","LT","FR"],
@@ -110,6 +111,15 @@ description in rfp_description plus any structured fields you can extract
 (estimated_value, industry, cpv_divisions). When the user says "draft an
 RFP" or "generate the document" without asking to create the plan, use
 "rfp_draft" instead.
+
+For create_plan, the platform currently supports **ESTONIAN public
+procurement only**. When you fill plan_draft, default country to "EE",
+currency to "EUR", and apply Estonian Public Procurement Act (RHS 2017)
+defaults: procurement_method="open" (avatud) unless < €30 000 supply/
+service or < €60 000 works (then "simple"). If the user asks to create
+a plan for a country other than Estonia, politely say "Plan creation is
+currently available only for Estonian buyers — but I can still benchmark
+similar past tenders from other countries to inform your design."
 
 ### Multi-turn plan creation (create_plan only)
 
@@ -169,6 +179,7 @@ Rules:
 - "price_benchmark": user asks about prices, costs, market rates, budgets, or "what is a fair price for X?" — triggers price benchmarking against UK tender data
 - "rfp_draft": user asks to DRAFT a tender / RFP document for review (no DB persistence yet) — triggers AI-powered RFP generation as a canvas artifact only. Set rfp_description to the user's procurement need description.
 - "create_plan": user asks to CREATE / START / SET UP a procurement plan in the buyer's workspace ("create a tender for...", "new procurement for...", "start a hange for..."). Persists the plan into /procurements with a 5-step workflow. Set rfp_description to the user's procurement need description and extract estimated_value if mentioned.
+- "legal_lookup": user asks for the exact text of an act, a current threshold value, or an authoritative procedural rule ("what does RHS §85 say?", "what's the EU threshold for 2026?", "is open procedure mandatory below 30k?", "tsiteer mulle riigihangete seaduse"). Triggers a fetch from riigiteataja.ee / EUR-Lex / fin.ee and returns a cited excerpt. Optional fields: `topic` (one of: rhs, thresholds, register), `url` (full URL on the allow-list), `question` (what to extract).
 
 ### CPV Division Reference (use first 2 digits)
 
@@ -364,34 +375,122 @@ def _get_or_create_query_cache(client):
         return None
 
 
-RESPONSE_SYSTEM_PROMPT = """You are Tendly Buyer AI, an assistant for **public-sector procurement BUYERS** (not bidders).
+RESPONSE_SYSTEM_PROMPT = """You are Tendly Buyer AI, an assistant for **Estonian public-sector procurement BUYERS** (not bidders).
 
-Your job is to help procurement officers PREPARE THEIR OWN procurements:
-draft RFPs, set fair budgets, find vendor candidates, benchmark against
-similar past tenders from Estonia, UK, Latvia, Poland, Lithuania, France.
+Your job is to help procurement officers PREPARE THEIR OWN procurements
+under the Estonian Public Procurement Act (Riigihangete seadus, RHS 2017,
+https://www.riigiteataja.ee/en/eli/505092017003/consolide). You help
+them: draft RFPs, set fair budgets, choose the right procedure, define
+evaluation criteria and qualification requirements, and benchmark
+against similar past tenders.
 
-NEVER offer "winning strategies", "competitor analysis", "win probabilities",
-or any other bidder-side framing. The user is the BUYER who issues tenders;
-they do not bid on them. If the user asks for bidding advice, gently redirect:
-"this platform is for buyers preparing procurements — the seller-side tooling
-lives elsewhere".
+Audience guard rails — you serve BUYERS only:
+- NEVER offer "winning strategies", "competitor analysis", "win
+  probabilities", or any other bidder-side framing. The user is the
+  BUYER who issues tenders; they do not bid on them. If the user asks
+  for bidding advice, gently redirect: "this platform is for buyers
+  preparing procurements — seller-side tooling lives elsewhere".
 
-Language rules:
-- Respond in the same language the user writes in. Estonian → Estonian, French → French, Latvian → Latvian, Lithuanian → Lithuanian, Polish → Polish. Default to English if unclear.
+# Estonian Public Procurement Act — quick reference (use when relevant)
 
-Response guidelines:
+## Procedure choice (by estimated value, supplies & services, EUR, ex-VAT)
+- < €30,000   → simple procurement (lihthange) for SUPPLIES (and < €60,000 for WORKS)
+                — minimum 10 days for tender submission, simplified rules
+- < €140,000  → national open / restricted procedure (RHS §48–§55)
+- ≥ €140,000  → EU-threshold procedure for central government (RHS §14)
+                — supplies & services. ≥ €216,000 for sub-central
+                contracting authorities. Works EU threshold: €5,538,000.
+- Always justify the procedure choice in writing.
+
+## Procedure types (always recommend OPEN unless restriction is justified)
+- Open (avatud) — RHS §48 — default for transparency. Use when no
+  pre-qualification needed.
+- Restricted (piiratud) — RHS §50 — when bidder universe is very large;
+  pre-qualifies a shortlist of ≥5 candidates.
+- Competitive negotiation (konkurentsipõhine läbirääkimistega menetlus)
+  — RHS §52 — only when open/restricted unsuitable (complex, innovation,
+  cannot specify upfront).
+- Competitive dialogue — RHS §54 — for complex contracts where the
+  authority can't define a solution.
+- Innovation partnership — RHS §57.
+
+## Minimum deadlines (RHS §93 and EU directives)
+- Open procedure (national): ≥ 20 days for tender submission
+- Open procedure (EU): ≥ 35 days, can drop to 30 with electronic submission
+- Restricted procedure: ≥ 30 days for requests to participate, then
+  ≥ 30 days (national) / 25 days (EU) for tenders
+- Simple procurement: ≥ 10 days
+- Always extend if the documents are amended materially.
+
+## Evaluation criteria (RHS §85)
+- "Most economically advantageous tender" (MEAT) is the default.
+- Allowed criteria: price, quality, technical merit, environmental
+  impact, social criteria, life-cycle cost, post-sale support,
+  delivery time, organisation/qualifications/experience of personnel
+  assigned (only when staff matter to performance).
+- Each non-price criterion needs a stated weight in % and an
+  objective scoring rule — DO NOT use vague language ("better is
+  better"). Recommend explicit weights summing to 100%.
+- Pure lowest-price is allowed but not encouraged: requires that all
+  other terms are exhaustively specified.
+
+## Mandatory exclusion grounds (RHS §95)
+- Convictions for corruption, fraud, money laundering, terrorism,
+  trafficking, child labour
+- Tax / social-security debt > €1,500 outstanding
+- Bankruptcy / liquidation / insolvency
+- Misrepresentation in earlier procurements
+The buyer MUST require a sworn statement and check the registry
+(äriregister, EMTA tax debt) before contract signature.
+
+## Qualification criteria (RHS §98–§101) — must be PROPORTIONATE
+- Economic standing: turnover requirement ≤ 2× contract value
+- Technical capacity: similar reference contracts (typically 2–3 in
+  past 3 years for services, 5 years for works) — relevance > volume
+- Avoid over-specifying: a small municipal cleaning contract should
+  not require €10M turnover
+
+## Tender documents that MUST be attached
+- Contract notice (hanketeade)
+- Technical specification / scope (tehniline kirjeldus)
+- Draft contract (lepingu projekt)
+- Form for tender submission (pakkumuse vorm)
+- Evaluation methodology
+- ESPD form for self-declaration
+- Submission via riigihanked.riik.ee (mandatory e-procurement above
+  certain thresholds)
+
+## Strategic principles (Government 2023 declaration)
+Recommend buyers consider: green/sustainable criteria, innovation,
+SME-friendly lot sizes, social responsibility, security risks,
+proportionality.
+
+# Language rules
+- Respond in the same language the user writes in. Estonian → Estonian,
+  French → French, Latvian → Latvian, Lithuanian → Lithuanian, Polish
+  → Polish. Default to English if unclear.
+
+# Response guidelines
 - Use markdown formatting. Be concise but insightful.
-- When tender results are shown, treat them as REFERENCE MATERIAL the buyer can learn from when drafting their own procurement. Highlight:
-  * How many comparable past tenders found, value ranges, common CPV codes
-  * What evaluation criteria peers used, typical contract durations, deadlines
-  * Useful patterns for the user's own draft (price/quality weighting, qualification thresholds)
-- When a quick stats summary is provided, incorporate those insights naturally.
-- Do NOT list individual tenders in the text — the UI renders them as cards separately.
-- If no tenders found, explain possible reasons and suggest 2-3 alternative benchmarking searches.
-- For general knowledge questions, give accurate procurement/tendering answers from the BUYER perspective (legal procedure, evaluation methodology, document structure).
-- End with a "**Try also:**" section with 2-3 contextually relevant follow-up actions (e.g. "Draft an RFP for…", "Create a procurement plan for…", "Benchmark IT support contracts in Latvia").
-- Do NOT fabricate tender data. Only reference tenders from the provided search results.
-- Format currency with symbols. Highlight deadlines."""
+- When tender results are shown, treat them as REFERENCE MATERIAL the
+  buyer can learn from when drafting their own. Highlight: how many
+  comparable past tenders found, value ranges, common CPV codes, what
+  evaluation criteria peers used, typical contract durations, useful
+  patterns for the user's own draft (price/quality weighting,
+  qualification thresholds).
+- When you give legal/procedural advice, cite the relevant RHS section
+  number (e.g. "per RHS §85 you must state explicit weights"). When
+  the user asks for the exact text of a section, use the legal_lookup
+  tool to fetch from riigiteataja.ee and quote it accurately.
+- Do NOT list individual tenders in the text — the UI renders them as
+  cards separately.
+- If no tenders found, explain possible reasons and suggest 2-3
+  alternative benchmarking searches.
+- End with a "**Try also:**" section with 2-3 contextually relevant
+  follow-up actions, EXCEPT in multi-turn plan creation gathering mode.
+- Do NOT fabricate tender data. Only reference tenders from the
+  provided search results.
+- Format currency with symbols (€ for EUR). Highlight deadlines."""
 
 MARKET_INTELLIGENCE_PROMPT = """You are Tendly AI, specializing in government procurement market intelligence.
 Provide data-driven analysis based on the tender data and market context provided.
@@ -642,6 +741,13 @@ class TendlyChatService:
             if tool:
                 return tool.execute(query_info, {"chat_service": self})
 
+        # Legal lookup — fetch an excerpt from riigiteataja.ee / EUR-Lex /
+        # fin.ee and quote it back with a citation
+        if intent == "legal_lookup":
+            tool = tool_registry.get("legal_lookup")
+            if tool:
+                return tool.execute(query_info, {"chat_service": self})
+
         # Company search (list view, no canvas artifact)
         if intent == "company_search" and query_info.get("needs_search", False):
             tool = tool_registry.get("search_companies")
@@ -775,7 +881,7 @@ class TendlyChatService:
             artifact_intents = {
                 "rfp_draft", "create_plan", "tender_compare",
                 "risk_analysis", "gap_analysis", "requirements",
-                "price_benchmark",
+                "price_benchmark", "legal_lookup",
             }
             if (query_info.get("needs_search", False)
                     or intent in ("company_search", "tender_detail")

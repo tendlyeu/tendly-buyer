@@ -10,19 +10,19 @@
     "no_conversations": "Sarunu vēl nav"
   },
   "welcome": {
-    "title": "Laipni lūdzam Tendly čatā",
-    "subtitle": "Jūsu AI asistents valsts iepirkumu izlūkošanai. Meklējiet iepirkumus, analizējiet iespējas un iegūstiet ieskatus no Igaunijas un Lielbritānijas.",
-    "suggestion_1_title": "Meklēt iepirkumus",
-    "suggestion_1_text": "IT iepirkumi Igaunijā",
-    "suggestion_2_title": "Izpētīt tirgus",
-    "suggestion_2_text": "Būvniecības iespējas Latvijā",
-    "suggestion_3_title": "Analizēt iespējas",
-    "suggestion_3_text": "Augstas vērtības medicīnas iepirkumi",
-    "suggestion_4_title": "Iegūt ieskatus",
-    "suggestion_4_text": "Salīdzināt IT tirgus dažādās valstīs"
+    "title": "Sveiki, esmu jūsu AI iepirkumu speciālists",
+    "subtitle": "Pastāstiet, ko jums jāiepirk, un es palīdzēšu izveidot iepirkumu — no apraksta un budžeta līdz vērtēšanas kritērijiem un prasībām.",
+    "suggestion_1_title": "Izveidot iepirkumu",
+    "suggestion_1_text": "Man jāiepērk IT atbalsts pašvaldībai",
+    "suggestion_2_title": "Sagatavot RFP",
+    "suggestion_2_text": "Palīdzi sagatavot tehnisko specifikāciju",
+    "suggestion_3_title": "Noteikt godīgu budžetu",
+    "suggestion_3_text": "Cik vajadzētu maksāt ceļu uzturēšanai?",
+    "suggestion_4_title": "Atrast piegādātājus",
+    "suggestion_4_text": "Kurš var to piegādāt Igaunijā?"
   },
   "chat": {
-    "placeholder": "Meklēt iepirkumus, jautāt par iepirkumiem...",
+    "placeholder": "Aprakstiet, ko vēlaties iepirkt...",
     "thinking": "Analizēju jūsu vaicājumu...",
     "understanding": "Analizēju jūsu vaicājumu",
     "searching": "Meklēju iepirkumus",
@@ -33,7 +33,7 @@
     "you": "Jūs",
     "tendly_ai": "Tendly AI",
     "stream_error": "Atvainojiet, radās kļūda. Lūdzu, mēģiniet vēlreiz.",
-    "disclaimer": "Tendly Chat meklē Igaunijā un Lielbritānijā. Rezultāti ir tikai informatīviem nolūkiem.",
+    "disclaimer": "Tendly sagatavo plānus saskaņā ar Igaunijas publisko iepirkumu likumu. Pārbaudiet pirms publicēšanas.",
     "enter_to_send": "lai nosūtītu",
     "copy": "Kopēt",
     "copied": "Nokopēts",
@@ -150,6 +150,7 @@
     "open_plan": "Atvērt plānu"
   },
   "canvas": {
-    "create_plan": "Jauns iepirkuma plāns"
+    "create_plan": "Jauns iepirkuma plāns",
+    "legal_lookup": "Juridiskais avots"
   }
 }

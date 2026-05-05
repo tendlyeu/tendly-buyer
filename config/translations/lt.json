@@ -10,19 +10,19 @@
     "no_conversations": "Pokalbių dar nėra"
   },
   "welcome": {
-    "title": "Sveiki atvykę į Tendly pokalbį",
-    "subtitle": "Jūsų AI asistentas viešųjų pirkimų žvalgybai. Ieškokite konkursų, analizuokite galimybes ir gaukite įžvalgas iš Estijos ir Jungtinės Karalystės.",
-    "suggestion_1_title": "Ieškoti konkursų",
-    "suggestion_1_text": "IT konkursai Estijoje",
-    "suggestion_2_title": "Tyrinėti rinkas",
-    "suggestion_2_text": "Statybos galimybės Latvijoje",
-    "suggestion_3_title": "Analizuoti galimybes",
-    "suggestion_3_text": "Didelės vertės medicinos konkursai",
-    "suggestion_4_title": "Gauti įžvalgas",
-    "suggestion_4_text": "Palyginti IT rinkas tarp šalių"
+    "title": "Sveiki, esu jūsų AI viešųjų pirkimų specialistas",
+    "subtitle": "Pasakykite, ko reikia įsigyti — padėsiu paruošti pirkimą: nuo aprašymo ir biudžeto iki vertinimo kriterijų ir reikalavimų.",
+    "suggestion_1_title": "Sukurti pirkimą",
+    "suggestion_1_text": "Turiu įsigyti IT pagalbą savivaldybei",
+    "suggestion_2_title": "Parengti RFP",
+    "suggestion_2_text": "Padėk parengti techninę specifikaciją",
+    "suggestion_3_title": "Nustatyti sąžiningą biudžetą",
+    "suggestion_3_text": "Kiek turėtų kainuoti kelių priežiūra?",
+    "suggestion_4_title": "Rasti tiekėjus",
+    "suggestion_4_text": "Kas galėtų tai įgyvendinti Estijoje?"
   },
   "chat": {
-    "placeholder": "Ieškoti konkursų, klausti apie viešuosius pirkimus...",
+    "placeholder": "Aprašykite, ką norite įsigyti...",
     "thinking": "Analizuoju jūsų užklausą...",
     "understanding": "Analizuoju jūsų užklausą",
     "searching": "Ieškau konkursų",
@@ -33,7 +33,7 @@
     "you": "Jūs",
     "tendly_ai": "Tendly AI",
     "stream_error": "Atsiprašome, įvyko klaida. Bandykite dar kartą.",
-    "disclaimer": "Tendly Chat ieško Estijoje ir Jungtinėje Karalystėje. Rezultatai yra tik informacinio pobūdžio.",
+    "disclaimer": "Tendly rengia planus pagal Estijos viešųjų pirkimų įstatymą. Patikrinkite prieš skelbdami.",
     "enter_to_send": "siųsti",
     "copy": "Kopijuoti",
     "copied": "Nukopijuota",
@@ -150,6 +150,7 @@
     "open_plan": "Atidaryti planą"
   },
   "canvas": {
-    "create_plan": "Naujas pirkimo planas"
+    "create_plan": "Naujas pirkimo planas",
+    "legal_lookup": "Teisės šaltinis"
   }
 }

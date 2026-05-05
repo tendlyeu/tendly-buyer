@@ -11,6 +11,7 @@ from components.tender_detail import tender_detail_panel
 # intentionally not surfaced in this buyer-only product.
 from components.artifacts.tender_comparison import tender_comparison_panel
 from components.artifacts.create_plan import create_plan_panel
+from components.artifacts.legal_lookup import legal_lookup_panel
 from components.artifacts.risk_analysis import risk_analysis_panel
 from components.artifacts.gap_analysis import gap_analysis_panel
 from components.artifacts.requirements import requirements_panel
@@ -347,6 +348,14 @@ def register_api_routes(rt, chat_service):
             artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
             if artifact and artifact.get("data"):
                 panel = create_plan_panel(artifact["data"], language=language)
+                return HTMLResponse(to_xml(panel))
+            return Response("Artifact not found", status_code=404)
+
+        if artifact_type == "legal_lookup":
+            conv_id = request.query_params.get("conversation_id", "")
+            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
+            if artifact and artifact.get("data"):
+                panel = legal_lookup_panel(artifact["data"], language=language)
                 return HTMLResponse(to_xml(panel))
             return Response("Artifact not found", status_code=404)
 

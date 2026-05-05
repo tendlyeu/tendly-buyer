@@ -106,19 +106,19 @@
     "members": "Meeskonnaliikmed"
   },
   "welcome": {
-    "title": "Tere tulemast Tendly vestlusesse",
-    "subtitle": "Teie AI-assistent riigihanke teabe jaoks. Otsige hankeid, analüüsige võimalusi ja saage ülevaade Eestist ja Suurbritanniast.",
-    "suggestion_1_title": "Otsi hankeid",
-    "suggestion_1_text": "IT-hanked Eestis",
-    "suggestion_2_title": "Avasta turge",
-    "suggestion_2_text": "Ehitushanked Lätis",
-    "suggestion_3_title": "Analüüsi võimalusi",
-    "suggestion_3_text": "Kõrge väärtusega meditsiinihanked",
-    "suggestion_4_title": "Saa ülevaade",
-    "suggestion_4_text": "Võrdle IT turge riikide lõikes"
+    "title": "Tere, mina olen sinu AI hankespetsialist",
+    "subtitle": "Räägi, mida sul on vaja hankida — aitan koostada hankeplaani: kirjeldusest ja eelarvest hindamiskriteeriumide, nõuete ja riigihangete seaduse vastavuseni. Aitan ka RFP-de koostamisel, pakkujate leidmisel ja õiglase eelarve hindamisel.",
+    "suggestion_1_title": "Loo uus hange",
+    "suggestion_1_text": "Pean hankima IT-tuge linnale",
+    "suggestion_2_title": "Koosta RFP",
+    "suggestion_2_text": "Aita kirjutada tehniline kirjeldus",
+    "suggestion_3_title": "Hinda õiglast eelarvet",
+    "suggestion_3_text": "Palju peaks teeremont maksma?",
+    "suggestion_4_title": "Leia pakkujad",
+    "suggestion_4_text": "Kes saaks selle Eestis teostada?"
   },
   "chat": {
-    "placeholder": "Otsi hankeid, küsi hangete kohta...",
+    "placeholder": "Kirjelda, mida soovid hankida...",
     "thinking": "Analüüsin teie päringut...",
     "understanding": "Analüüsin teie päringut",
     "searching": "Otsin hankeid",
@@ -129,7 +129,7 @@
     "you": "Teie",
     "tendly_ai": "Tendly AI",
     "stream_error": "Vabandust, midagi läks valesti. Palun proovige uuesti.",
-    "disclaimer": "Tendly Chat otsib Eestist ja Suurbritanniast. Tulemused on informatiivsel eesmärgil.",
+    "disclaimer": "Tendly koostab hankeplaane riigihangete seaduse (RHS 2017) järgi. Kontrolli enne avaldamist.",
     "enter_to_send": "saatmiseks",
     "copy": "Kopeeri",
     "copied": "Kopeeritud",
@@ -195,7 +195,8 @@
     "price_benchmark": "Hinna võrdlus",
     "rfp_draft": "Hankeplaani mustand",
     "close": "Sulge paneel",
-    "create_plan": "Uus hankeplaan"
+    "create_plan": "Uus hankeplaan",
+    "legal_lookup": "Õigusakti tsitaat"
   },
   "language": {
     "switch": "Keel"
