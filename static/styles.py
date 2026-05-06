@@ -738,7 +738,8 @@ body {
     background: #ffffff;
     border: 1.5px solid #e5e7eb;
     border-radius: 16px;
-    padding: 4px 6px 4px 18px;
+    padding: 4px 6px 4px 8px;
+    gap: 4px;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
@@ -786,15 +787,19 @@ body {
 .attach-btn {
     background: transparent;
     border: none;
-    color: #6b7280;
-    width: 36px; height: 36px;
-    border-radius: 50%;
+    color: #4b5563;
+    width: 38px; height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
     display: inline-flex; align-items: center; justify-content: center;
     cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.15s;
+    flex: 0 0 38px;
+    margin-bottom: 3px;
+    margin-right: 4px;
+    transition: background 0.15s, color 0.15s;
 }
 .attach-btn:hover { background: #f3f4f6; color: #2563eb; }
+.attach-btn svg { width: 22px !important; height: 22px !important; flex-shrink: 0; display: block; }
 
 .chat-attachment-chip {
     display: flex;
