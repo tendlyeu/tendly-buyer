@@ -576,6 +576,25 @@ window.runAiReview = function(planId, btn) {
         });
 };
 
+// Delete a procurement document with a confirmation dialog. Removes the
+// .doc-card from the DOM on success without needing htmx.
+window.deleteProcurementDoc = function(planId, docId, btn) {
+    if (!confirm(_t('docs.confirm_delete', 'Delete this document?'))) return;
+    fetch('/api/procurements/' + encodeURIComponent(planId) + '/documents/' + encodeURIComponent(docId), {
+        method: 'DELETE',
+    }).then(function(resp) {
+        if (!resp.ok) {
+            alert(_t('chat.error', 'Could not delete document.'));
+            return;
+        }
+        var card = btn && btn.closest && btn.closest('.doc-card');
+        if (card) card.remove();
+    }).catch(function(e) {
+        console.error('Delete doc failed', e);
+        alert(_t('chat.error', 'Could not delete document.'));
+    });
+};
+
 // View the existing (cached) AI review without re-running. Used when a
 // review already exists and the user clicks "View review".
 window.openAiReview = function(planId, btn) {

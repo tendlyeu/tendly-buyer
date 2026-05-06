@@ -52,7 +52,7 @@ def _page_shell(title_key, language, auth, body_content, active_page="dashboard"
         page_script,
         Body(
             Div(
-                Button(_raw(_ICON_MENU), cls="hamburger-btn", onclick="toggleSidebar()"),
+                Button(_raw(_ICON_MENU), cls="hamburger-btn", type="button", onclick="toggleSidebar()"),
                 Span(
                     f"{t('app.name', language)} {t('app.buyer_badge', language)} ",
                     Span("BETA", cls="logo-badge-beta"),

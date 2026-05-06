@@ -503,10 +503,7 @@ def _document_card(doc, plan_id, language="en"):
                 type="button",
                 style="display:inline-flex;align-items:center;padding:4px;color:#9ca3af;background:none;border:none;cursor:pointer;",
                 title="Delete",
-                hx_delete=f"/api/procurements/{plan_id}/documents/{doc_id}",
-                hx_confirm="Delete this document?",
-                hx_target="closest .doc-card",
-                hx_swap="outerHTML",
+                onclick=f"deleteProcurementDoc('{plan_id}', '{doc_id}', this)",
             )
         )
 
