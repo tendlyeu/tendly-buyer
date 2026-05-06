@@ -1,0 +1,15 @@
+{
+    email kamelbelkadhi2@gmail.com
+}
+
+buyer.tendly.eu {
+    encode gzip
+    reverse_proxy app:5002 {
+        # SSE / long-lived connections used by /api/chat — keep streaming open.
+        flush_interval -1
+        transport http {
+            read_timeout 5m
+            write_timeout 5m
+        }
+    }
+}

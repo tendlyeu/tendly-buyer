@@ -1,11 +1,12 @@
 # Production compose file rendered onto the VM at /opt/tendly-buyer/docker-compose.yml
-# by .github/workflows/deploy-vm.yml. Two services:
+# by .github/workflows/deploy-vm.yml. Three services:
 #   - buyer-db-proxy: cloud-sql-proxy v2 sidecar for the dedicated buyer Cloud SQL
 #                     instance. Authenticates via the VM's attached service account
 #                     (ADC). Reachable from the app container as buyer-db-proxy:5432.
-#   - app:            the tendly-buyer FastHTML server. Connects to tendly-prod
-#                     (read-only) via the cloud-sql-python-connector library and to
-#                     the buyer DB via the proxy on the local Docker network.
+#   - app:            the tendly-buyer FastHTML server. Exposed only on the internal
+#                     Docker network — Caddy is the public entrypoint.
+#   - caddy:          TLS-terminating reverse proxy (auto-issues Let's Encrypt cert
+#                     for buyer.tendly.eu). Listens on 80/443 of the host.
 services:
   buyer-db-proxy:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.21.3
@@ -19,8 +20,8 @@ services:
     image: ${IMAGE_URI}
     depends_on:
       - buyer-db-proxy
-    ports:
-      - "80:5002"
+    expose:
+      - "5002"
     env_file:
       - .env
     restart: unless-stopped
@@ -30,3 +31,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

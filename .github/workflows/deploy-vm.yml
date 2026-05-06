@@ -27,6 +27,8 @@ env:
   VM_NAME: tendly-buyer-vm
   VM_MACHINE_TYPE: e2-small
   VM_DISK_SIZE_GB: '20'
+  STATIC_IP_NAME: tendly-buyer-ip
+  PUBLIC_DOMAIN: buyer.tendly.eu
   DB_INSTANCE_NAME: tendly-buyer-db
   DB_TIER: db-f1-micro
   DB_NAME: tendly_buyer
@@ -223,6 +225,39 @@ jobs:
             echo "VM already exists."
           fi
 
+      - name: Ensure static external IP and attach to VM
+        run: |
+          if ! gcloud compute addresses describe "$STATIC_IP_NAME" \
+                --region="$GCP_REGION" \
+                --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            gcloud compute addresses create "$STATIC_IP_NAME" \
+              --region="$GCP_REGION" \
+              --project="$GCP_PROJECT_ID"
+          fi
+          STATIC_IP=$(gcloud compute addresses describe "$STATIC_IP_NAME" \
+            --region="$GCP_REGION" \
+            --project="$GCP_PROJECT_ID" \
+            --format='value(address)')
+          CURRENT_IP=$(gcloud compute instances describe "$VM_NAME" \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT_ID" \
+            --format='value(networkInterfaces[0].accessConfigs[0].natIP)')
+          if [ "$CURRENT_IP" != "$STATIC_IP" ]; then
+            echo "Swapping VM IP from $CURRENT_IP to static $STATIC_IP"
+            gcloud compute instances delete-access-config "$VM_NAME" \
+              --zone="$GCP_ZONE" \
+              --project="$GCP_PROJECT_ID" \
+              --access-config-name="external-nat" || true
+            gcloud compute instances add-access-config "$VM_NAME" \
+              --zone="$GCP_ZONE" \
+              --project="$GCP_PROJECT_ID" \
+              --access-config-name="external-nat" \
+              --address="$STATIC_IP"
+          else
+            echo "VM already has static IP $STATIC_IP"
+          fi
+          echo "STATIC_IP=$STATIC_IP" >> "$GITHUB_ENV"
+
       - name: Ensure firewall rules (HTTP + IAP SSH)
         run: |
           gcloud compute firewall-rules describe tendly-buyer-allow-http \
@@ -260,6 +295,7 @@ jobs:
           SESSION_SECRET_VAL=$(gcloud secrets versions access latest --secret="$SESSION_SECRET_NAME" --project="$GCP_PROJECT_ID")
 
           cp deploy/docker-compose.prod.yml .deploy_tmp/docker-compose.yml
+          cp deploy/Caddyfile .deploy_tmp/Caddyfile
 
           # The .env file is consumed by both `docker compose` (variable
           # interpolation: IMAGE_URI, BUYER_DB_INSTANCE) AND by the app
@@ -288,6 +324,7 @@ jobs:
             --tunnel-through-iap \
             .deploy_tmp/docker-compose.yml \
             .deploy_tmp/.env \
+            .deploy_tmp/Caddyfile \
             "${VM_NAME}:/tmp/"
 
       - name: Deploy on VM
@@ -301,6 +338,7 @@ jobs:
               sudo mkdir -p /opt/tendly-buyer
               sudo mv /tmp/docker-compose.yml /opt/tendly-buyer/docker-compose.yml
               sudo mv /tmp/.env /opt/tendly-buyer/.env
+              sudo mv /tmp/Caddyfile /opt/tendly-buyer/Caddyfile
               sudo chmod 600 /opt/tendly-buyer/.env
               cd /opt/tendly-buyer
               sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev --quiet
@@ -313,7 +351,7 @@ jobs:
               sudo docker compose ps
             "
 
-      - name: Show app URL
+      - name: Show app URL and DNS instructions
         run: |
           IP=$(gcloud compute instances describe "$VM_NAME" \
             --zone="$GCP_ZONE" \
@@ -321,5 +359,13 @@ jobs:
             --format='value(networkInterfaces[0].accessConfigs[0].natIP)')
           echo ""
           echo "============================================"
-          echo " Tendly Buyer is up at: http://${IP}/"
+          echo " Static IP:    $IP"
+          echo " Public URL:   https://${PUBLIC_DOMAIN}/  (after DNS + cert)"
+          echo " Direct test:  curl --resolve ${PUBLIC_DOMAIN}:443:${IP} https://${PUBLIC_DOMAIN}/"
+          echo ""
+          echo " DNS to add at your registrar (Squarespace):"
+          echo "   Type:  A"
+          echo "   Host:  buyer"
+          echo "   Value: $IP"
+          echo "   TTL:   default"
           echo "============================================"
