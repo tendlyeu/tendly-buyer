@@ -7,16 +7,18 @@ from starlette.responses import StreamingResponse, HTMLResponse, Response, Redir
 from fasthtml.common import to_xml
 
 from components.tender_detail import tender_detail_panel
-from components.artifacts.competitor_intel import competitor_intel_panel
+# competitor_intel/winning_strategy artifacts are seller-side and are
+# intentionally not surfaced in this buyer-only product.
 from components.artifacts.tender_comparison import tender_comparison_panel
+from components.artifacts.create_plan import create_plan_panel
+from components.artifacts.legal_lookup import legal_lookup_panel
 from components.artifacts.risk_analysis import risk_analysis_panel
-from components.artifacts.winning_strategy import winning_strategy_panel
 from components.artifacts.gap_analysis import gap_analysis_panel
 from components.artifacts.requirements import requirements_panel
 from components.artifacts.price_benchmark import price_benchmark_panel
 from components.artifacts.rfp_draft import rfp_draft_panel
 from config.i18n import get_language_from_request, SUPPORTED_LANGUAGES, LANGUAGE_COOKIE
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth
 from core.rate_limiter import check_rate_limit, record_usage
 
 # Auth-related database functions (may not exist yet if auth isn't fully deployed)
@@ -44,6 +46,10 @@ def register_api_routes(rt, chat_service):
     async def post(request):
         data = await request.json()
         conversation_id = data.get("conversation_id")
+        # Authoritative UI language (cookie / query-param). Used as a hard
+        # signal for the LLM so a one-word "Hi" with the picker on English
+        # doesn't drift to Estonian.
+        ui_language = get_language_from_request(request)
         message = data.get("message", "").strip()
 
         if not message:
@@ -76,9 +82,9 @@ def register_api_routes(rt, chat_service):
 
             try:
                 if hasattr(chat_service, 'process_message_sync'):
-                    result = await chat_service.process_message_sync(conversation_id, message)
+                    result = await chat_service.process_message_sync(conversation_id, message, user_email=user_email, ui_language=ui_language)
                 else:
-                    result = await chat_service.process_message(conversation_id, message)
+                    result = await chat_service.process_message(conversation_id, message, user_email=user_email, ui_language=ui_language)
 
                 response_text = result.get("response", "")
                 words = response_text.split(" ")
@@ -90,6 +96,15 @@ def register_api_routes(rt, chat_service):
                 tenders = result.get("tenders", [])
                 if tenders:
                     yield f"event: tenders\ndata: {json.dumps(tenders, default=str)}\n\n"
+
+                artifact = result.get("artifact")
+                if artifact:
+                    # Always include conversation_id so the client can fetch
+                    # /api/artifact/{type}/{id}?conversation_id=... even if it
+                    # didn't yet know the conversation (e.g. brand-new chat).
+                    artifact_payload = dict(artifact)
+                    artifact_payload.setdefault("conversation_id", conversation_id)
+                    yield f"event: artifact\ndata: {json.dumps(artifact_payload, default=str)}\n\n"
 
                 # Include rate limit info in done event
                 done_data = {
@@ -111,11 +126,106 @@ def register_api_routes(rt, chat_service):
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
+    @rt("/api/chat/attach")
+    @require_auth
+    async def post(request):
+        """Attach a file uploaded from the chat input to the conversation's
+        most recently-created procurement plan.
+
+        Returns JSON: {ok, plan_id, plan_title, doc_id, filename, content_chars}
+        On failure (no plan in conversation, bad file): {ok:false, error}
+        """
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        form = await request.form()
+        conversation_id = form.get("conversation_id", "")
+        uploaded = form.get("file")
+
+        if not uploaded or not hasattr(uploaded, "filename") or not uploaded.filename:
+            return JSONResponse({"ok": False, "error": "no_file"}, status_code=400)
+        # If the user attaches a file as their first action (no chat sent yet,
+        # so the JS doesn't have an activeConversationId), spin up a new
+        # conversation here so the file has somewhere to live.
+        if not conversation_id:
+            conversation_id = chat_service.create_conversation(user_email=user_email)
+
+        # Find the most recently-created plan attached to THIS conversation.
+        # We look at the conversation's stored artifacts for a "create_plan"
+        # entry — that's the plan the user just made via chat. If there's
+        # no such artifact, fall back to the user's most recent plan
+        # overall (any plan they own).
+        from services.procurement_service import (
+            list_plans, add_document, get_plan,
+        )
+        target_plan_id = None
+        target_plan_title = None
+        try:
+            artifacts = chat_service.get_conversation_artifacts(conversation_id) or []
+        except Exception:
+            artifacts = []
+        for art in reversed(artifacts):
+            if art.get("type") == "create_plan":
+                pid = (art.get("data") or {}).get("plan_id")
+                if pid:
+                    plan = get_plan(pid)
+                    if plan and plan.get("organization_id") == user_email:
+                        target_plan_id = pid
+                        target_plan_title = plan.get("title")
+                        break
+
+        if not target_plan_id:
+            # Fall back: most-recent plan the user owns
+            plans = list_plans(organization_id=user_email)
+            if plans:
+                target_plan_id = plans[0].get("id")
+                target_plan_title = plans[0].get("title")
+
+        if not target_plan_id:
+            return JSONResponse({
+                "ok": False,
+                "error": "no_plan",
+                "message": "No procurement plan found in this conversation. Ask the agent to create one first, then attach files.",
+            }, status_code=400)
+
+        # Persist via FileProcessor (same path as /api/procurements/.../documents)
+        from services.file_processor import FileProcessor
+        try:
+            result = await FileProcessor().process_upload(uploaded, target_plan_id)
+        except ValueError as e:
+            return JSONResponse({"ok": False, "error": "bad_file", "message": str(e)}, status_code=400)
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": "upload_failed", "message": str(e)}, status_code=500)
+
+        doc = add_document(
+            title=uploaded.filename,
+            document_type="other",
+            file_name=result["file_name"],
+            file_size=result["file_size"],
+            mime_type=result["mime_type"],
+            content_text=result["content_text"],
+            procurement_plan_id=target_plan_id,
+            uploaded_by_email=user_email,
+            organization_id=user_email,
+            file_path=result["file_path"],
+        )
+
+        return JSONResponse({
+            "ok": True,
+            "conversation_id": conversation_id,
+            "plan_id": target_plan_id,
+            "plan_title": target_plan_title,
+            "doc_id": doc.get("id"),
+            "filename": uploaded.filename,
+            "content_chars": len(result.get("content_text") or ""),
+        })
+
     @rt("/api/conversations")
     def get(request):
         auth = get_auth_from_request(request)
         user_email = auth.get('email') if auth else None
-        return chat_service.get_conversations(user_email=user_email)
+        # Always return JSON list (empty list serialises to a zero-byte body
+        # via FastHTML's default; force a real JSON array).
+        return JSONResponse(chat_service.get_conversations(user_email=user_email))
 
     @rt("/api/conversations/new")
     def post(request):
@@ -126,7 +236,9 @@ def register_api_routes(rt, chat_service):
 
     @rt("/api/conversations/{conversation_id}")
     def delete(request, conversation_id: str):
-        chat_service.delete_conversation(conversation_id)
+        auth = get_auth_from_request(request)
+        user_email = auth.get('email') if auth else None
+        chat_service.delete_conversation(conversation_id, user_email=user_email)
         return {"ok": True}
 
     @rt("/api/tender/{tender_id}")
@@ -231,16 +343,6 @@ def register_api_routes(rt, chat_service):
                 return Response("Tender not found", status_code=404)
             return HTMLResponse(to_xml(panel))
 
-        if artifact_type == "competitor_intel":
-            # Look up artifact data from conversation store
-            # The artifact_id is passed as a query param or from conversation
-            conv_id = request.query_params.get("conversation_id", "")
-            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
-            if artifact and artifact.get("data"):
-                panel = competitor_intel_panel(artifact["data"], language=language)
-                return HTMLResponse(to_xml(panel))
-            return Response("Artifact not found", status_code=404)
-
         if artifact_type == "tender_comparison":
             conv_id = request.query_params.get("conversation_id", "")
             artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
@@ -249,19 +351,27 @@ def register_api_routes(rt, chat_service):
                 return HTMLResponse(to_xml(panel))
             return Response("Artifact not found", status_code=404)
 
+        if artifact_type == "create_plan":
+            conv_id = request.query_params.get("conversation_id", "")
+            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
+            if artifact and artifact.get("data"):
+                panel = create_plan_panel(artifact["data"], language=language)
+                return HTMLResponse(to_xml(panel))
+            return Response("Artifact not found", status_code=404)
+
+        if artifact_type == "legal_lookup":
+            conv_id = request.query_params.get("conversation_id", "")
+            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
+            if artifact and artifact.get("data"):
+                panel = legal_lookup_panel(artifact["data"], language=language)
+                return HTMLResponse(to_xml(panel))
+            return Response("Artifact not found", status_code=404)
+
         if artifact_type == "risk_analysis":
             conv_id = request.query_params.get("conversation_id", "")
             artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
             if artifact and artifact.get("data"):
                 panel = risk_analysis_panel(artifact["data"], language=language)
-                return HTMLResponse(to_xml(panel))
-            return Response("Artifact not found", status_code=404)
-
-        if artifact_type == "winning_strategy":
-            conv_id = request.query_params.get("conversation_id", "")
-            artifact = chat_service.get_artifact(conv_id, artifact_id) if conv_id else None
-            if artifact and artifact.get("data"):
-                panel = winning_strategy_panel(artifact["data"], language=language)
                 return HTMLResponse(to_xml(panel))
             return Response("Artifact not found", status_code=404)
 
@@ -300,6 +410,7 @@ def register_api_routes(rt, chat_service):
         return Response(f"Unknown artifact type: {artifact_type}", status_code=404)
 
     @rt("/api/role/switch/{role}")
+    @require_auth
     def post(request, role: str):
         """Switch between buyer and seller role."""
         if role not in ("buyer", "seller"):

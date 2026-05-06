@@ -10,19 +10,19 @@
     "no_conversations": "Aucune conversation"
   },
   "welcome": {
-    "title": "Bienvenue sur Tendly Chat",
-    "subtitle": "Votre assistant IA pour l'intelligence des marchés publics. Recherchez des appels d'offres, analysez les opportunités et obtenez des informations d'Estonie et du Royaume-Uni.",
-    "suggestion_1_title": "Rechercher des marchés",
-    "suggestion_1_text": "Marchés IT en Estonie",
-    "suggestion_2_title": "Explorer les marchés",
-    "suggestion_2_text": "Opportunités de construction en Lettonie",
-    "suggestion_3_title": "Analyser les opportunités",
-    "suggestion_3_text": "Marchés médicaux de haute valeur",
-    "suggestion_4_title": "Obtenir des informations",
-    "suggestion_4_text": "Comparer les marchés IT entre pays"
+    "title": "Bonjour, je suis votre acheteur public IA",
+    "subtitle": "Dites-moi ce que vous voulez acheter et je vais vous aider à préparer le marché : de la description au budget, en passant par les critères d'évaluation et les exigences.",
+    "suggestion_1_title": "Créer un marché",
+    "suggestion_1_text": "Je dois acheter du support IT pour la ville",
+    "suggestion_2_title": "Rédiger un RFP",
+    "suggestion_2_text": "Aide-moi à rédiger les spécifications",
+    "suggestion_3_title": "Fixer un budget juste",
+    "suggestion_3_text": "Combien doit coûter l'entretien des routes ?",
+    "suggestion_4_title": "Trouver des fournisseurs",
+    "suggestion_4_text": "Qui peut livrer cela en Estonie ?"
   },
   "chat": {
-    "placeholder": "Rechercher des marchés, poser des questions sur les marchés publics...",
+    "placeholder": "Décrivez ce que vous voulez acheter...",
     "thinking": "Analyse de votre requête...",
     "understanding": "Analyse de votre requête",
     "searching": "Recherche de marchés",
@@ -33,13 +33,14 @@
     "you": "Vous",
     "tendly_ai": "Tendly AI",
     "stream_error": "Désolé, une erreur s'est produite. Veuillez réessayer.",
-    "disclaimer": "Tendly Chat recherche en Estonie et au Royaume-Uni. Les résultats sont à titre informatif.",
+    "disclaimer": "Tendly prépare les plans selon la loi estonienne sur les marchés publics. Vérifiez avant publication.",
     "enter_to_send": "pour envoyer",
     "copy": "Copier",
     "copied": "Copié",
     "copy_link": "Copier le lien",
     "link_copied": "Lien copié",
-    "messages_remaining": "{remaining} sur {limit} messages restants"
+    "messages_remaining": "{remaining} sur {limit} messages restants",
+    "attach_file": "Joindre un fichier"
   },
   "tender": {
     "matching": "Marchés correspondants",
@@ -126,5 +127,61 @@
     "feature_pipeline": "Sauvegarder dans le pipeline",
     "view_plans": "Voir les plans",
     "dismiss": "Peut-être plus tard"
+  },
+  "form": {
+    "title": "Titre",
+    "type": "Type",
+    "content_notes": "Contenu / Notes",
+    "name": "Nom",
+    "email": "E-mail",
+    "role": "Rôle",
+    "specialty": "Spécialité",
+    "document_title_placeholder": "Titre du document",
+    "document_content_placeholder": "Collez le contenu du document ou les notes ici...",
+    "full_name_placeholder": "Nom complet",
+    "email_placeholder": "email@org.fr"
+  },
+  "procurements": {
+    "evaluation_criteria": "Critères d'évaluation",
+    "requirements": "Exigences",
+    "step_not_found": "Étape introuvable",
+    "complete_step": "Marquer comme terminée",
+    "back_to_plan": "Retour au plan",
+    "step": "Étape",
+    "assigned_role": "Rôle assigné",
+    "completed_by": "Effectué par",
+    "what_to_do": "Que faire à cette étape",
+    "edit_title": "Modifier le plan d'achat",
+    "save": "Enregistrer les modifications",
+    "mark_complete_short": "Marquer comme terminé",
+    "step_name_domain_review": "Revue du besoin",
+    "step_name_market_research": "Étude de marché",
+    "step_name_plan_review": "Revue du plan",
+    "step_name_board_approval": "Approbation du budget",
+    "step_name_document_preparation": "Préparation des documents",
+    "role_domain_lead": "Responsable du domaine",
+    "role_procurement_manager": "Responsable des achats",
+    "role_board": "Conseil",
+    "role_domain_specialist": "Spécialiste du domaine"
+  },
+  "create_plan": {
+    "created": "Créé",
+    "open_plan": "Ouvrir le plan"
+  },
+  "canvas": {
+    "create_plan": "Nouveau plan d'achat",
+    "legal_lookup": "Source juridique"
+  },
+  "registry": {
+    "back_to_registry": "Retour au registre",
+    "country": "Pays",
+    "estimated_value": "Valeur estimée",
+    "deadline": "Échéance",
+    "description": "Description",
+    "benchmark_in_chat": "Comparer dans le chat",
+    "open_source": "Ouvrir la source"
+  },
+  "documents": {
+    "file_label": "Fichier (PDF, DOCX, XLSX, TXT, CSV — max 10 Mo)"
   }
 }

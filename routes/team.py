@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse
 
 from components.layout import buyer_page
 from config.i18n import get_language_from_request, t
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth
 from core.utils import _raw
 from services.procurement_service import list_team_members, add_team_member, remove_team_member
 
@@ -63,25 +63,25 @@ def _team_page_content(members, language="en"):
         Form(
             Div(
                 Div(
-                    Label("Name", cls="form-label"),
-                    Input(name="name", type="text", placeholder="Full name", cls="form-input", required=True),
+                    Label(t("form.name", language), cls="form-label"),
+                    Input(name="name", type="text", placeholder=t("form.full_name_placeholder", language), cls="form-input", required=True),
                     cls="form-group",
                 ),
                 Div(
-                    Label("Email", cls="form-label"),
-                    Input(name="user_email", type="email", placeholder="email@org.ee", cls="form-input", required=True),
+                    Label(t("form.email", language), cls="form-label"),
+                    Input(name="user_email", type="email", placeholder=t("form.email_placeholder", language), cls="form-input", required=True),
                     cls="form-group",
                 ),
                 cls="form-row",
             ),
             Div(
                 Div(
-                    Label("Role", cls="form-label"),
+                    Label(t("form.role", language), cls="form-label"),
                     Select(*role_options, name="procurement_role", cls="form-select"),
                     cls="form-group",
                 ),
                 Div(
-                    Label("Specialty", cls="form-label"),
+                    Label(t("form.specialty", language), cls="form-label"),
                     Select(*specialty_options, name="specialty", cls="form-select"),
                     cls="form-group",
                 ),
@@ -124,18 +124,23 @@ def _team_page_content(members, language="en"):
 
 def register_team_routes(rt, chat_service):
     @rt("/team")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        members = list_team_members("default")
+        org_id = auth.get("email") if auth else "default"
+        members = list_team_members(org_id)
         content = _team_page_content(members, language)
         return buyer_page(content, language=language, auth=auth, active_page="team", chat_service=chat_service, title_key="team.page_title")
 
     @rt("/api/team")
+    @require_auth
     async def post(request):
         form = await request.form()
+        auth = get_auth_from_request(request)
+        org_id = auth.get("email") if auth else "default"
         add_team_member(
-            organization_id="default",
+            organization_id=org_id,
             user_email=form.get("user_email", ""),
             name=form.get("name", ""),
             procurement_role=form.get("procurement_role", ""),

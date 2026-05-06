@@ -10,3 +10,6 @@ screenshots/
 test-results/
 test.db
 uploads/
+.playwright-mcp/
+scenario*.png
+*.png

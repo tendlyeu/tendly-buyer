@@ -5,8 +5,11 @@ import os
 from typing import Optional
 
 SUPPORTED_LANGUAGES = ["et", "en", "lv", "lt", "pl", "fr"]
-BETA_LANGUAGES = ["et", "en"]
-DEFAULT_LANGUAGE = "et"
+# All 6 supported languages are now accepted from the picker / cookie.
+# (The old BETA_LANGUAGES gate restricted parsing to et/en, which silently
+# coerced lv/lt/pl/fr cookies back to Estonian.)
+BETA_LANGUAGES = SUPPORTED_LANGUAGES
+DEFAULT_LANGUAGE = "en"
 LANGUAGE_COOKIE = "tendly_chat_lang"
 
 # Language display info (native name + flag emoji)

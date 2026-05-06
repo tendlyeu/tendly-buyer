@@ -10,19 +10,19 @@
     "no_conversations": "Brak rozmów"
   },
   "welcome": {
-    "title": "Witamy w Tendly Chat",
-    "subtitle": "Twój asystent AI do wywiadu zamówień publicznych. Wyszukuj przetargi, analizuj możliwości i uzyskuj informacje z Estonii i Wielkiej Brytanii.",
-    "suggestion_1_title": "Szukaj przetargów",
-    "suggestion_1_text": "Przetargi IT w Estonii",
-    "suggestion_2_title": "Odkrywaj rynki",
-    "suggestion_2_text": "Możliwości budowlane na Łotwie",
-    "suggestion_3_title": "Analizuj możliwości",
-    "suggestion_3_text": "Przetargi medyczne o wysokiej wartości",
-    "suggestion_4_title": "Uzyskaj informacje",
-    "suggestion_4_text": "Porównaj rynki IT w różnych krajach"
+    "title": "Witaj, jestem Twoim AI specjalistą ds. zamówień",
+    "subtitle": "Powiedz, co chcesz zamówić — pomogę przygotować plan zamówienia: od opisu i budżetu po kryteria oceny i wymagania.",
+    "suggestion_1_title": "Utwórz zamówienie",
+    "suggestion_1_text": "Muszę zamówić wsparcie IT dla miasta",
+    "suggestion_2_title": "Sporządź RFP",
+    "suggestion_2_text": "Pomóż napisać specyfikację techniczną",
+    "suggestion_3_title": "Ustal uczciwy budżet",
+    "suggestion_3_text": "Ile powinno kosztować utrzymanie dróg?",
+    "suggestion_4_title": "Znajdź dostawców",
+    "suggestion_4_text": "Kto może to zrealizować w Estonii?"
   },
   "chat": {
-    "placeholder": "Szukaj przetargów, pytaj o zamówienia publiczne...",
+    "placeholder": "Opisz, co chcesz zamówić...",
     "thinking": "Analizuję Twoje zapytanie...",
     "understanding": "Analizuję Twoje zapytanie",
     "searching": "Wyszukuję przetargi",
@@ -33,13 +33,14 @@
     "you": "Ty",
     "tendly_ai": "Tendly AI",
     "stream_error": "Przepraszamy, coś poszło nie tak. Spróbuj ponownie.",
-    "disclaimer": "Tendly Chat przeszukuje Estonię i Wielką Brytanię. Wyniki są wyłącznie informacyjne.",
+    "disclaimer": "Tendly przygotowuje plany zgodnie z estońską ustawą o zamówieniach publicznych. Sprawdź przed publikacją.",
     "enter_to_send": "aby wysłać",
     "copy": "Kopiuj",
     "copied": "Skopiowano",
     "copy_link": "Kopiuj link",
     "link_copied": "Link skopiowany",
-    "messages_remaining": "{remaining} z {limit} wiadomości pozostało"
+    "messages_remaining": "{remaining} z {limit} wiadomości pozostało",
+    "attach_file": "Dodaj plik"
   },
   "tender": {
     "matching": "Pasujące przetargi",
@@ -126,5 +127,61 @@
     "feature_pipeline": "Zapisz przetargi w pipeline",
     "view_plans": "Zobacz plany",
     "dismiss": "Może później"
+  },
+  "form": {
+    "title": "Tytuł",
+    "type": "Typ",
+    "content_notes": "Treść / Notatki",
+    "name": "Imię",
+    "email": "E-mail",
+    "role": "Rola",
+    "specialty": "Specjalizacja",
+    "document_title_placeholder": "Tytuł dokumentu",
+    "document_content_placeholder": "Wklej tutaj treść dokumentu lub notatki...",
+    "full_name_placeholder": "Imię i nazwisko",
+    "email_placeholder": "email@org.pl"
+  },
+  "procurements": {
+    "evaluation_criteria": "Kryteria oceny",
+    "requirements": "Wymagania",
+    "step_not_found": "Krok nie znaleziony",
+    "complete_step": "Oznacz jako wykonany",
+    "back_to_plan": "Powrót do planu",
+    "step": "Krok",
+    "assigned_role": "Przypisana rola",
+    "completed_by": "Wykonał",
+    "what_to_do": "Co zrobić w tym kroku",
+    "edit_title": "Edytuj plan zamówień",
+    "save": "Zapisz zmiany",
+    "mark_complete_short": "Oznacz jako wykonane",
+    "step_name_domain_review": "Przegląd potrzeb",
+    "step_name_market_research": "Badanie rynku",
+    "step_name_plan_review": "Przegląd planu",
+    "step_name_board_approval": "Zatwierdzenie budżetu",
+    "step_name_document_preparation": "Przygotowanie dokumentów",
+    "role_domain_lead": "Kierownik dziedziny",
+    "role_procurement_manager": "Kierownik ds. zamówień",
+    "role_board": "Zarząd",
+    "role_domain_specialist": "Specjalista dziedziny"
+  },
+  "create_plan": {
+    "created": "Utworzono",
+    "open_plan": "Otwórz plan"
+  },
+  "canvas": {
+    "create_plan": "Nowy plan zamówień",
+    "legal_lookup": "Źródło prawne"
+  },
+  "registry": {
+    "back_to_registry": "Powrót do rejestru",
+    "country": "Kraj",
+    "estimated_value": "Szacowana wartość",
+    "deadline": "Termin",
+    "description": "Opis",
+    "benchmark_in_chat": "Porównaj w czacie",
+    "open_source": "Otwórz źródło"
+  },
+  "documents": {
+    "file_label": "Plik (PDF, DOCX, XLSX, TXT, CSV — do 10 MB)"
   }
 }

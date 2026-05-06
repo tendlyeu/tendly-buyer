@@ -52,7 +52,7 @@ def _page_shell(title_key, language, auth, body_content, active_page="dashboard"
         page_script,
         Body(
             Div(
-                Button(_raw(_ICON_MENU), cls="hamburger-btn", onclick="toggleSidebar()"),
+                Button(_raw(_ICON_MENU), cls="hamburger-btn", type="button", onclick="toggleSidebar()"),
                 Span(
                     f"{t('app.name', language)} {t('app.buyer_badge', language)} ",
                     Span("BETA", cls="logo-badge-beta"),
@@ -71,8 +71,12 @@ def _page_shell(title_key, language, auth, body_content, active_page="dashboard"
     )
 
 
-def buyer_page(content, language="en", auth=None, active_page="dashboard", chat_service=None, title_key="app.title"):
-    """Render a standard buyer page (dashboard, procurements, documents, etc.)."""
+def buyer_page(content, language="en", auth=None, active_page="dashboard", chat_service=None, title_key="app.title", include_canvas=False):
+    """Render a standard buyer page (dashboard, procurements, documents, etc.).
+
+    Set include_canvas=True to add the right-side slide-in canvas panel
+    (used e.g. on the procurement detail page for AI Review results).
+    """
     main_area = Div(content, cls="main-content")
     return _page_shell(
         title_key=title_key,
@@ -81,6 +85,7 @@ def buyer_page(content, language="en", auth=None, active_page="dashboard", chat_
         body_content=main_area,
         active_page=active_page,
         chat_service=chat_service,
+        include_canvas=include_canvas,
     )
 
 
@@ -91,9 +96,12 @@ def chat_page(conversation_id=None, messages=None, chat_service=None, language="
         body_attrs["data_conversation_id"] = conversation_id
 
     if messages:
+        # Hide internal "system" primer messages from the UI — they only
+        # exist so the LLM has plan context on follow-up turns.
+        visible = [m for m in messages if m.get("role") != "system"]
         main_area = Div(
             Div(
-                *[message_component(m, language=language) for m in messages],
+                *[message_component(m, language=language) for m in visible],
                 id="messages",
                 cls="messages-container",
             ),

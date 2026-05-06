@@ -1,7 +1,7 @@
 """RHR (Riigihangete Register) browser routes for Tendly Buyer."""
 
 from fasthtml.common import *
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 
 from components.layout import buyer_page
 from config.i18n import get_language_from_request, t
@@ -23,7 +23,7 @@ def _tender_row(tender, detail, result, language):
     winner = result.winner_name if result else ""
     status = tender.procurement_status or ""
 
-    return Div(
+    return A(
         Div(
             Span(flag, style="font-size:18px;flex-shrink:0;"),
             Div(
@@ -41,7 +41,8 @@ def _tender_row(tender, detail, result, language):
             Span(winner[:30] + ("..." if len(winner) > 30 else ""), style="font-size:11px;color:#059669;white-space:nowrap;") if winner else "",
             style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;",
         ),
-        style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:white;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s;",
+        href=f"/registry/{tender.procurement_id}",
+        style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:white;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s;text-decoration:none;color:inherit;",
         onmouseover="this.style.borderColor='#93c5fd'",
         onmouseout="this.style.borderColor='#e5e7eb'",
     )
@@ -144,3 +145,100 @@ def register_registry_routes(rt, chat_service):
         tenders_data = _search_registry(query=query, country=country)
         content = _registry_page(tenders_data, query, country, language)
         return buyer_page(content, language=language, auth=auth, active_page="registry", chat_service=chat_service, title_key="registry.page_title")
+
+    @rt("/registry/{tender_id}")
+    def get(request, tender_id: int):
+        """Detail view for a single registry tender. Buyers use this to
+        benchmark — see scope, deadline, evaluation criteria, winner."""
+        language = get_language_from_request(request)
+        auth = get_auth_from_request(request)
+        detail = chat_service.get_tender_detail(tender_id) if chat_service else None
+        if not detail:
+            return RedirectResponse("/registry", status_code=302)
+
+        # Build a lightweight detail page using the data dict
+        flag = COUNTRY_FLAGS.get(detail.get("country_code", ""), "")
+        name = (detail.get("name_original")
+                or detail.get(f"name_{language}")
+                or detail.get("name") or "")
+        authority = detail.get("authority", "")
+        value = detail.get("value")
+        currency = detail.get("currency", "EUR")
+        deadline = detail.get("deadline", "")
+        cpv_name = detail.get("cpv_name", "")
+        description = (detail.get("description_original")
+                       or detail.get("description") or "")
+        source_url = detail.get("source_url", "") or detail.get("tendly_url", "")
+
+        info_cards = [
+            Div(
+                Div(t("registry.country", language) or "Country",
+                    style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(f"{flag} {detail.get('country','')}",
+                    style="font-size:14px;color:#111827;font-weight:500;margin-top:2px;"),
+                cls="info-card",
+            ),
+            Div(
+                Div(t("registry.estimated_value", language) or "Estimated value",
+                    style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(f"{currency} {value:,.0f}" if value else "—",
+                    style="font-size:14px;color:#111827;font-weight:500;margin-top:2px;"),
+                cls="info-card",
+            ),
+            Div(
+                Div(t("registry.deadline", language) or "Deadline",
+                    style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(str(deadline)[:10] if deadline else "—",
+                    style="font-size:14px;color:#111827;font-weight:500;margin-top:2px;"),
+                cls="info-card",
+            ),
+            Div(
+                Div("CPV", style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(cpv_name or "—",
+                    style="font-size:14px;color:#111827;font-weight:500;margin-top:2px;"),
+                cls="info-card",
+            ),
+        ]
+
+        action_row = Div(
+            A(t("registry.benchmark_in_chat", language) or "Benchmark in chat",
+              href=f"/chat?benchmark={tender_id}",
+              cls="btn-primary",
+              style="font-size:13px;padding:6px 14px;"),
+            (A(t("registry.open_source", language) or "Open source",
+               href=source_url, target="_blank", rel="noopener",
+               cls="btn-secondary",
+               style="font-size:13px;padding:6px 14px;") if source_url else ""),
+            style="display:flex;gap:8px;",
+        )
+
+        content = Div(
+            Div(
+                A("← " + (t("registry.back_to_registry", language) or "Back to registry"),
+                  href="/registry",
+                  style="font-size:13px;color:#6b7280;text-decoration:none;"),
+                style="margin-bottom:8px;",
+            ),
+            Div(
+                Div(
+                    H1(name or f"Tender {tender_id}",
+                       style="font-size:22px;font-weight:700;color:#111827;margin:0;"),
+                    P(authority,
+                      style="font-size:14px;color:#6b7280;margin:4px 0 0;"),
+                ),
+                action_row,
+                style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;",
+                cls="page-header",
+            ),
+            Div(*info_cards, cls="info-grid"),
+            (Div(
+                H3(t("registry.description", language) or "Description",
+                   style="font-size:15px;font-weight:600;color:#111827;margin:0 0 10px;"),
+                P(description, style="font-size:14px;color:#374151;line-height:1.6;"),
+                cls="dashboard-section",
+            ) if description else ""),
+            cls="page-content",
+        )
+        return buyer_page(content, language=language, auth=auth,
+                          active_page="registry", chat_service=chat_service,
+                          title_key="registry.page_title")

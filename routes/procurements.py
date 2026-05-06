@@ -11,10 +11,11 @@ from components.procurements.plan_list import (
     procurement_list_page,
     procurement_new_page,
     procurement_detail_page,
+    procurement_step_page,
 )
 from components.procurements.ai_review_panel import ai_review_panel
 from config.i18n import get_language_from_request, t
-from routes.auth_utils import get_auth_from_request
+from routes.auth_utils import get_auth_from_request, require_auth, user_owns_plan, forbidden_response
 from services.procurement_service import (
     create_plan, get_plan, list_plans, get_steps, complete_step, get_stats,
     list_documents, add_document, get_document, delete_document,
@@ -24,14 +25,17 @@ from services.file_processor import FileProcessor
 
 def register_procurement_routes(rt, chat_service):
     @rt("/procurements")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        plans = list_plans()
+        user_email = auth.get("email") if auth else None
+        plans = list_plans(organization_id=user_email)
         content = procurement_list_page(plans=plans, language=language)
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
 
     @rt("/procurements/new")
+    @require_auth
     def get(request):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
@@ -39,6 +43,7 @@ def register_procurement_routes(rt, chat_service):
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.new_title")
 
     @rt("/procurements")
+    @require_auth
     async def post(request):
         form = await request.form()
         auth = get_auth_from_request(request)
@@ -76,38 +81,122 @@ def register_procurement_routes(rt, chat_service):
             fiscal_year=int(form.get("fiscal_year") or 2026),
             procurement_method=form.get("procurement_method", "open"),
             created_by_email=user_email,
+            organization_id=user_email,
             metadata_json=metadata if metadata else None,
         )
         return RedirectResponse(f"/procurements/{plan['id']}", status_code=303)
 
     @rt("/procurements/{plan_id}")
+    @require_auth
     def get(request, plan_id: str):
         language = get_language_from_request(request)
         auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
         plan = get_plan(plan_id)
-        if not plan:
+        # Tenant isolation: only the creator can view their plan.
+        # NOTE: when team-level sharing arrives, replace this with an
+        # organization-membership check.
+        if not plan or (plan.get("organization_id") and plan.get("organization_id") != user_email):
             return RedirectResponse("/procurements", status_code=302)
         steps = get_steps(plan_id)
         docs = list_documents(procurement_plan_id=plan_id)
         content = procurement_detail_page(plan=plan, steps=steps, documents=docs, language=language)
+        return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title", include_canvas=True)
+
+    @rt("/procurements/{plan_id}/edit")
+    @require_auth
+    def get(request, plan_id: str):
+        """Render the edit form pre-populated with the plan's current data."""
+        language = get_language_from_request(request)
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
+        plan = get_plan(plan_id)
+        content = procurement_new_page(language=language, plan=plan)
+        return buyer_page(content, language=language, auth=auth,
+                          active_page="procurements", chat_service=chat_service,
+                          title_key="procurements.page_title")
+
+    @rt("/procurements/{plan_id}/edit")
+    @require_auth
+    async def post(request, plan_id: str):
+        """Persist changes from the edit form."""
+        language = get_language_from_request(request)
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
+        form = await request.form()
+
+        # Re-parse criteria + requirements from JSON inputs
+        try:
+            evaluation_criteria = json.loads(form.get("evaluation_criteria_json", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            evaluation_criteria = []
+        try:
+            requirements = json.loads(form.get("requirements_json", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            requirements = []
+        metadata = {}
+        if form.get("submission_deadline"):
+            metadata["submission_deadline"] = form.get("submission_deadline")
+        if evaluation_criteria:
+            metadata["evaluation_criteria"] = evaluation_criteria
+        if requirements:
+            metadata["requirements"] = requirements
+
+        from services.procurement_service import update_plan
+        update_plan(
+            plan_id,
+            title=form.get("title", "Untitled"),
+            description=form.get("description", ""),
+            category=form.get("category", "muu"),
+            estimated_value=float(form.get("estimated_value") or 0) or None,
+            cpv_code=form.get("cpv_code", ""),
+            fiscal_year=int(form.get("fiscal_year") or 2026),
+            procurement_method=form.get("procurement_method", "open"),
+            metadata_json=metadata or {},
+        )
+        return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
+
+    @rt("/procurements/{plan_id}/steps/{step_num}")
+    @require_auth
+    def get(request, plan_id: str, step_num: int):
+        """Detail page for a single workflow step (replaces the old 404)."""
+        language = get_language_from_request(request)
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
+        plan = get_plan(plan_id)
+        steps = get_steps(plan_id)
+        step_data = next((s for s in steps if s.get("step_number") == step_num), None)
+        content = procurement_step_page(plan=plan, step_number=step_num, step_data=step_data, language=language)
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
 
     @rt("/procurements/{plan_id}/steps/{step_num}/complete")
+    @require_auth
     async def post(request, plan_id: str, step_num: int):
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
         complete_step(plan_id, step_num, completed_by=user_email)
         return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
 
     # --- Document upload, download, delete ---
 
     @rt("/api/procurements/{plan_id}/documents")
+    @require_auth
     async def post(request, plan_id: str):
         """Handle multipart file upload for a procurement plan."""
-        form = await request.form()
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
 
+        form = await request.form()
         title = form.get("title", "Untitled")
         document_type = form.get("document_type", "other")
         uploaded_file = form.get("document")
@@ -125,6 +214,7 @@ def register_procurement_routes(rt, chat_service):
                     content_text=result["content_text"],
                     procurement_plan_id=plan_id,
                     uploaded_by_email=user_email,
+                    organization_id=user_email,
                     file_path=result["file_path"],
                 )
             except ValueError as e:
@@ -139,15 +229,20 @@ def register_procurement_routes(rt, chat_service):
                 content_text="",
                 procurement_plan_id=plan_id,
                 uploaded_by_email=user_email,
+                organization_id=user_email,
             )
 
         return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
 
     @rt("/api/procurements/{plan_id}/documents/{doc_id}/download")
+    @require_auth
     def get(request, plan_id: str, doc_id: str):
         """Serve a document file from disk."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         doc = get_document(doc_id)
-        if not doc:
+        if not doc or doc.get("procurement_plan_id") != plan_id:
             return RedirectResponse(f"/procurements/{plan_id}", status_code=302)
 
         file_path = doc.get("file_path", "")
@@ -161,10 +256,15 @@ def register_procurement_routes(rt, chat_service):
         )
 
     @rt("/api/procurements/{plan_id}/documents/{doc_id}")
+    @require_auth
     async def delete(request, plan_id: str, doc_id: str):
         """Delete a document (from DB and disk)."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         doc = get_document(doc_id)
-        if doc:
+        # Belt-and-braces: doc must also belong to this plan
+        if doc and doc.get("procurement_plan_id") == plan_id:
             file_path = doc.get("file_path", "")
             if file_path:
                 FileProcessor.delete_file(file_path)
@@ -174,11 +274,45 @@ def register_procurement_routes(rt, chat_service):
 
     # --- AI Document Review ---
 
+    def _render_review_panel(plan_id: str, language: str, analysis: dict, doc_count: int, reviewed_display: str):
+        """Build the side-panel HTML for a review result."""
+        from fasthtml.common import Div, Span, Button, NotStr
+        panel = ai_review_panel(analysis, language)
+        meta = Div(
+            Span(
+                f"{t('review.reviewed_at', language)}: {reviewed_display}",
+                style="font-size:11px;color:#9ca3af;",
+            ),
+            Span(" · ", style="font-size:11px;color:#d1d5db;"),
+            Span(
+                f"{doc_count} {t('review.documents_analyzed', language)}",
+                style="font-size:11px;color:#9ca3af;",
+            ),
+            style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:0 4px;",
+        )
+        rerun = Button(
+            NotStr('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'),
+            f" {t('review.rerun_review', language)}",
+            type="button",
+            onclick=f"runAiReview('{plan_id}', this)",
+            cls="btn-secondary",
+            style="font-size:12px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px;",
+        )
+        footer = Div(
+            meta, rerun,
+            style="display:flex;align-items:center;justify-content:space-between;margin:14px 4px 4px;padding-top:12px;border-top:1px solid #f3f4f6;flex-wrap:wrap;gap:8px;",
+        )
+        return Div(panel, footer, cls="ai-review-canvas", style="padding:18px 16px 24px;")
+
     @rt("/api/procurements/{plan_id}/ai-review")
+    @require_auth
     async def post(request, plan_id: str):
-        """Run AI document review and return results as HTML fragment."""
+        """Run AI document review and return results as HTML fragment for the side canvas."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
         from services.document_review_service import DocumentReviewService
-        from fasthtml.common import Div, P, Span, Button, NotStr
+        from fasthtml.common import Div, P
 
         language = get_language_from_request(request)
         reviewer = DocumentReviewService()
@@ -186,53 +320,45 @@ def register_procurement_routes(rt, chat_service):
 
         if not result.get("success"):
             error = result.get("error", "")
-            if error == "no_documents":
-                msg = t("review.no_documents", language)
-            elif error == "no_content":
+            if error in ("no_documents", "no_content"):
                 msg = t("review.no_documents", language)
             else:
                 msg = error or t("chat.error", language)
             error_html = Div(
-                P(msg, style="font-size:13px;color:#dc2626;text-align:center;padding:16px 0;"),
-                id="ai-review-results",
+                P(msg, style="font-size:13px;color:#dc2626;text-align:center;padding:24px 16px;"),
+                cls="ai-review-canvas",
             )
             return HTMLResponse(to_xml(error_html))
 
         analysis = result.get("analysis", {})
         doc_count = result.get("document_count", 0)
-
-        panel = ai_review_panel(analysis, language)
-
-        # Metadata footer with re-run button
         from datetime import datetime, timezone
         reviewed_display = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        return HTMLResponse(to_xml(_render_review_panel(plan_id, language, analysis, doc_count, reviewed_display)))
 
-        from core.utils import _raw
+    @rt("/api/procurements/{plan_id}/ai-review")
+    @require_auth
+    def get(request, plan_id: str):
+        """Return the most recent stored AI review for the side canvas (no re-run)."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
+        from fasthtml.common import Div, P
 
-        footer = Div(
-            Div(
-                Span(
-                    f"{t('review.reviewed_at', language)}: {reviewed_display}",
-                    style="font-size:11px;color:#9ca3af;",
+        language = get_language_from_request(request)
+        plan = get_plan(plan_id)
+        existing = (plan.get("metadata_json") or {}).get("ai_review") if plan else None
+        if not existing:
+            empty = Div(
+                P(
+                    t("review.no_documents", language),
+                    style="font-size:13px;color:#6b7280;text-align:center;padding:24px 16px;",
                 ),
-                Span(" | ", style="font-size:11px;color:#d1d5db;"),
-                Span(
-                    f"{doc_count} {t('review.documents_analyzed', language)}",
-                    style="font-size:11px;color:#9ca3af;",
-                ),
-                style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;",
-            ),
-            Button(
-                NotStr('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'),
-                f" {t('review.rerun_review', language)}",
-                hx_post=f"/api/procurements/{plan_id}/ai-review",
-                hx_target="#ai-review-results",
-                hx_indicator="#review-loading",
-                cls="btn-secondary",
-                style="font-size:12px;padding:6px 12px;",
-            ),
-            style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #f3f4f6;flex-wrap:wrap;gap:8px;",
-        )
-
-        result_html = Div(panel, footer, id="ai-review-results")
-        return HTMLResponse(to_xml(result_html))
+                cls="ai-review-canvas",
+            )
+            return HTMLResponse(to_xml(empty))
+        analysis = existing.get("results", {}) or {}
+        doc_count = existing.get("document_count", 0)
+        reviewed_at = existing.get("reviewed_at", "")
+        reviewed_display = reviewed_at[:16].replace("T", " ") if reviewed_at else ""
+        return HTMLResponse(to_xml(_render_review_panel(plan_id, language, analysis, doc_count, reviewed_display)))

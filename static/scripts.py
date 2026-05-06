@@ -492,8 +492,8 @@ window.closeCanvas = function() {
 };
 
 // Open a server-rendered artifact in canvas by fetching its HTML
-window.openArtifact = function(type, id, title) {
-    var convId = activeConversationId || document.body.dataset.conversationId || '';
+window.openArtifact = function(type, id, title, conversationIdOverride) {
+    var convId = conversationIdOverride || activeConversationId || document.body.dataset.conversationId || '';
     var url = '/api/artifact/' + type + '/' + encodeURIComponent(id) + '?conversation_id=' + encodeURIComponent(convId);
     fetch(url)
         .then(function(resp) {
@@ -532,6 +532,79 @@ window.showTenderDetail = function(id) {
 // Legacy close — now closes canvas
 window.closeDetailPanel = function() {
     closeCanvas();
+};
+
+// --- AI Document Review (procurement detail page) ---
+// Runs (or re-runs) the AI review for a plan and opens the result in the
+// right-side canvas panel. Disables the trigger button while running and
+// shows a spinner indicator. The server returns an HTML fragment.
+window.runAiReview = function(planId, btn) {
+    var title = _t('review.title', 'AI Document Review');
+    var loadingTxt = _t('review.analyzing', 'Analyzing documents…');
+    // Open canvas immediately with a loading state so the user sees feedback.
+    var loadingHtml = '<div style="padding:32px 20px;text-align:center;color:#6b7280;">' +
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" style="animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>' +
+        '<div style="margin-top:10px;font-size:13px;">' + loadingTxt + '</div></div>';
+    openCanvas(title, loadingHtml);
+
+    var prevDisabled;
+    if (btn) {
+        prevDisabled = btn.disabled;
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'wait';
+    }
+    fetch('/api/procurements/' + encodeURIComponent(planId) + '/ai-review', {
+        method: 'POST',
+        headers: {'Accept': 'text/html'},
+    })
+        .then(function(resp) { return resp.text(); })
+        .then(function(html) {
+            openCanvas(title, html);
+        })
+        .catch(function(e) {
+            console.error('AI review failed', e);
+            openCanvas(title, '<div style="padding:24px;color:#dc2626;font-size:13px;">' +
+                _t('chat.error', 'Something went wrong.') + '</div>');
+        })
+        .finally(function() {
+            if (btn) {
+                btn.disabled = prevDisabled || false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+            }
+        });
+};
+
+// Delete a procurement document with a confirmation dialog. Removes the
+// .doc-card from the DOM on success without needing htmx.
+window.deleteProcurementDoc = function(planId, docId, btn) {
+    if (!confirm(_t('docs.confirm_delete', 'Delete this document?'))) return;
+    fetch('/api/procurements/' + encodeURIComponent(planId) + '/documents/' + encodeURIComponent(docId), {
+        method: 'DELETE',
+    }).then(function(resp) {
+        if (!resp.ok) {
+            alert(_t('chat.error', 'Could not delete document.'));
+            return;
+        }
+        var card = btn && btn.closest && btn.closest('.doc-card');
+        if (card) card.remove();
+    }).catch(function(e) {
+        console.error('Delete doc failed', e);
+        alert(_t('chat.error', 'Could not delete document.'));
+    });
+};
+
+// View the existing (cached) AI review without re-running. Used when a
+// review already exists and the user clicks "View review".
+window.openAiReview = function(planId, btn) {
+    var title = _t('review.title', 'AI Document Review');
+    fetch('/api/procurements/' + encodeURIComponent(planId) + '/ai-review', {
+        headers: {'Accept': 'text/html'},
+    })
+        .then(function(resp) { return resp.text(); })
+        .then(function(html) { openCanvas(title, html); })
+        .catch(function(e) { console.error('AI review fetch failed', e); });
 };
 
 window.toggleReqItems = function(sectionId) {
@@ -594,88 +667,116 @@ function createMessageElement(role, content) {
 }
 
 function createThinkingIndicator() {
+    // ChatGPT-style typing indicator: just three pulsing dots inside the
+    // assistant's message bubble. No stepped checklist, no skeleton lines —
+    // it's distracting for buyers who just want the answer.
     var result = createMessageElement('ai', '');
     var indicator = document.createElement('div');
-    indicator.className = 'thinking-indicator';
-
-    var steps = [
-        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', text: _t('chat.understanding', 'Understanding your query') },
-        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>', text: _t('chat.searching', 'Searching tenders') },
-        { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>', text: _t('chat.analyzing', 'Analyzing results') },
-    ];
-
-    var stepEls = [];
-    steps.forEach(function(s, idx) {
-        var step = document.createElement('div');
-        step.className = 'thinking-step';
-        step.style.animationDelay = (idx * 0.12) + 's';
-
-        var iconWrap = document.createElement('div');
-        iconWrap.className = 'thinking-step-icon';
-        iconWrap.innerHTML = s.icon;
-        step.appendChild(iconWrap);
-
-        var textEl = document.createElement('span');
-        textEl.className = 'thinking-step-text';
-        textEl.textContent = s.text;
-        step.appendChild(textEl);
-
-        var dots = document.createElement('span');
-        dots.className = 'thinking-dots-inline';
-        dots.style.display = 'none';
-        for (var d = 0; d < 3; d++) dots.appendChild(document.createElement('span'));
-        textEl.appendChild(dots);
-
-        indicator.appendChild(step);
-        stepEls.push({ el: step, dots: dots });
-    });
-
-    // Skeleton shimmer
-    var skeleton = document.createElement('div');
-    skeleton.className = 'thinking-skeleton';
-    for (var k = 0; k < 3; k++) {
-        var line = document.createElement('div');
-        line.className = 'skeleton-line';
-        skeleton.appendChild(line);
+    indicator.className = 'typing-indicator';
+    for (var i = 0; i < 3; i++) {
+        var dot = document.createElement('span');
+        dot.className = 'typing-dot';
+        indicator.appendChild(dot);
     }
-    indicator.appendChild(skeleton);
-
     result.textDiv.replaceWith(indicator);
-
-    // Animate through steps
-    var currentStep = 0;
-    function activateStep(idx) {
-        if (idx >= stepEls.length) return;
-        if (idx > 0) {
-            stepEls[idx - 1].el.classList.remove('active');
-            stepEls[idx - 1].el.classList.add('done');
-            stepEls[idx - 1].dots.style.display = 'none';
-            var checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
-            stepEls[idx - 1].el.querySelector('.thinking-step-icon').innerHTML = checkSvg;
-        }
-        stepEls[idx].el.classList.add('active');
-        stepEls[idx].dots.style.display = 'inline-flex';
-        currentStep = idx;
-    }
-
-    // Start first step immediately
-    setTimeout(function() { activateStep(0); }, 300);
-    // Progress to step 2 after 1.5s
-    var t1 = setTimeout(function() { activateStep(1); }, 1800);
-    // Progress to step 3 after 4s
-    var t2 = setTimeout(function() { activateStep(2); }, 4500);
-
-    result.element._thinkingTimers = [t1, t2];
+    result.element._thinkingTimers = [];
     return result.element;
 }
 
-function sendMessage(text) {
-    if (!text.trim() || isStreaming) return;
+// Track a pending file selected via the chat paperclip button. Cleared
+// after each send (whether the upload succeeded or not).
+window._chatPendingFile = null;
+
+function _renderAttachmentChip() {
+    var chip = qs('#chat-attachment-chip');
+    if (!chip) return;
+    var f = window._chatPendingFile;
+    if (!f) { chip.style.display = 'none'; chip.innerHTML = ''; return; }
+    chip.style.display = 'flex';
+    chip.innerHTML = '';
+    var name = document.createElement('span');
+    name.textContent = '📎 ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+    chip.appendChild(name);
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.title = 'Remove attachment';
+    remove.onclick = function() {
+        window._chatPendingFile = null;
+        var fileInput = qs('#chat-file-input');
+        if (fileInput) fileInput.value = '';
+        _renderAttachmentChip();
+    };
+    chip.appendChild(remove);
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'chat-file-input') {
+        var f = e.target.files && e.target.files[0];
+        if (f) { window._chatPendingFile = f; _renderAttachmentChip(); }
+    }
+});
+
+function _uploadPendingAttachment() {
+    var f = window._chatPendingFile;
+    if (!f) return Promise.resolve(null);
+    var fd = new FormData();
+    fd.append('file', f);
+    fd.append('conversation_id', activeConversationId || '');
+    return fetch('/api/chat/attach', { method: 'POST', body: fd })
+        .then(function(r) { return r.json().then(function(j){ j._http = r.status; return j; }); })
+        .then(function(res) {
+            // The endpoint may have created a fresh conversation when none
+            // was active. Pick that up so subsequent chat messages land in
+            // the same thread (and the canvas can fetch the right artifacts).
+            if (res && res.conversation_id && !activeConversationId) {
+                activeConversationId = res.conversation_id;
+            }
+            return res;
+        })
+        .catch(function(e) { return { ok: false, error: 'network', message: String(e) }; });
+}
+
+function sendMessage(text, _attachmentResult) {
+    if (!text.trim() && !window._chatPendingFile && !_attachmentResult) return;
+    if (isStreaming) return;
 
     // Client-side rate limit check (server also enforces)
     var rate = window.__RATE__ || {};
     if (rate.remaining === 0 && rate.limit !== -1) {
         showUpgradeModal(rate.tier);
+        return;
+    }
+
+    // If a file is queued and we haven't uploaded yet, upload first then
+    // re-enter sendMessage with the upload result so the chat message can
+    // mention the attached file.
+    if (window._chatPendingFile && !_attachmentResult) {
+        isStreaming = true;
+        var sendBtn = qs('#send-btn');
+        if (sendBtn) sendBtn.disabled = true;
+        _uploadPendingAttachment().then(function(res) {
+            window._chatPendingFile = null;
+            var fileInput = qs('#chat-file-input');
+            if (fileInput) fileInput.value = '';
+            _renderAttachmentChip();
+            isStreaming = false;
+            if (sendBtn) sendBtn.disabled = false;
+            // Compose a synthesised message that lets the agent know what
+            // happened so it can respond meaningfully.
+            var synth;
+            if (res && res.ok) {
+                var prefix = text.trim()
+                    ? text.trim() + '\n\n'
+                    : 'I have just attached a document.\n\n';
+                synth = prefix + '(System: file "' + res.filename + '" was attached to plan "' + (res.plan_title || '') + '" — '
+                      + (res.content_chars || 0) + ' characters of text extracted.)';
+            } else {
+                var err = (res && (res.message || res.error)) || 'unknown error';
+                synth = (text.trim() || 'I tried to attach a file.') + '\n\n(System: file upload failed: ' + err + ')';
+            }
+            sendMessage(synth, res || { ok: false });
+        });
         return;
     }
 
@@ -797,24 +898,25 @@ function sendMessage(text) {
                                 var artType = parsed.type || 'tender_detail';
                                 var artId = parsed.id;
                                 var artTenderId = parsed.tender_id;
+                                var artConvId = parsed.conversation_id || '';
                                 if (artType === 'tender_detail' && artTenderId) {
                                     showTenderDetail(artTenderId);
-                                } else if (artType === 'competitor_intel' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.competitor_intel', 'Competitor Intelligence'));
+                                } else if (artType === 'create_plan' && artId) {
+                                    openArtifact(artType, artId, _t('canvas.create_plan', 'New procurement plan'), artConvId);
+                                } else if (artType === 'legal_lookup' && artId) {
+                                    openArtifact(artType, artId, _t('canvas.legal_lookup', 'Legal source'), artConvId);
                                 } else if (artType === 'tender_comparison' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'));
+                                    openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'), artConvId);
                                 } else if (artType === 'risk_analysis' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.risk_analysis', 'Risk Analysis'));
-                                } else if (artType === 'winning_strategy' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.winning_strategy', 'Winning Strategy'));
+                                    openArtifact(artType, artId, _t('canvas.risk_analysis', 'Risk Analysis'), artConvId);
                                 } else if (artType === 'gap_analysis' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.gap_analysis', 'Gap Analysis'));
+                                    openArtifact(artType, artId, _t('canvas.gap_analysis', 'Gap Analysis'), artConvId);
                                 } else if (artType === 'requirements' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.requirements', 'Requirements'));
+                                    openArtifact(artType, artId, _t('canvas.requirements', 'Requirements'), artConvId);
                                 } else if (artType === 'price_benchmark' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.price_benchmark', 'Price Benchmarks'));
+                                    openArtifact(artType, artId, _t('canvas.price_benchmark', 'Price Benchmarks'), artConvId);
                                 } else if (artType === 'rfp_draft' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.rfp_draft', 'RFP Draft'));
+                                    openArtifact(artType, artId, _t('canvas.rfp_draft', 'RFP Draft'), artConvId);
                                 }
                             } else if (pendingEventType === 'rate_limit') {
                                 // Rate limit hit — show upgrade modal

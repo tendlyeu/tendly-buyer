@@ -76,7 +76,28 @@
     "add_requirement": "Add Requirement",
     "requirement_type": "Type",
     "mandatory": "Mandatory",
-    "preferred": "Preferred"
+    "preferred": "Preferred",
+    "evaluation_criteria": "Evaluation Criteria",
+    "requirements": "Requirements",
+    "step_not_found": "Step not found",
+    "complete_step": "Mark step complete",
+    "back_to_plan": "Back to plan",
+    "step": "Step",
+    "assigned_role": "Assigned role",
+    "completed_by": "Completed by",
+    "what_to_do": "What to do at this step",
+    "edit_title": "Edit procurement plan",
+    "save": "Save changes",
+    "mark_complete_short": "Mark complete",
+    "step_name_domain_review": "Need review",
+    "step_name_market_research": "Market research",
+    "step_name_plan_review": "Plan review",
+    "step_name_board_approval": "Budget approval",
+    "step_name_document_preparation": "Document preparation",
+    "role_domain_lead": "Domain Lead",
+    "role_procurement_manager": "Procurement Manager",
+    "role_board": "Board",
+    "role_domain_specialist": "Domain Specialist"
   },
   "documents": {
     "page_title": "Documents - Tendly Buyer",
@@ -85,7 +106,8 @@
     "coming_soon": "Document management coming soon — upload contracts, technical descriptions, and more.",
     "upload_title": "Add Document",
     "add": "Add Document",
-    "library": "Document Library"
+    "library": "Document Library",
+    "file_label": "File (PDF, DOCX, XLSX, TXT, CSV — max 10 MB)"
   },
   "registry": {
     "page_title": "Registry - Tendly Buyer",
@@ -96,7 +118,14 @@
     "search_placeholder": "Search by name, authority, keyword...",
     "search": "Search",
     "results_found": "procurements found",
-    "no_results": "No procurements found. Try a different search."
+    "no_results": "No procurements found. Try a different search.",
+    "back_to_registry": "Back to registry",
+    "country": "Country",
+    "estimated_value": "Estimated value",
+    "deadline": "Deadline",
+    "description": "Description",
+    "benchmark_in_chat": "Benchmark in chat",
+    "open_source": "Open source"
   },
   "team": {
     "page_title": "Team - Tendly Buyer",
@@ -109,19 +138,19 @@
     "members": "Team Members"
   },
   "welcome": {
-    "title": "Welcome to Tendly Chat",
-    "subtitle": "Your AI assistant for government procurement intelligence. Search tenders, analyze opportunities, and get insights across Estonia and United Kingdom.",
-    "suggestion_1_title": "Search tenders",
-    "suggestion_1_text": "IT tenders in Estonia",
-    "suggestion_2_title": "Explore markets",
-    "suggestion_2_text": "Construction opportunities in Latvia",
-    "suggestion_3_title": "Analyze opportunities",
-    "suggestion_3_text": "High-value medical tenders",
-    "suggestion_4_title": "Get insights",
-    "suggestion_4_text": "Compare IT markets across countries"
+    "title": "Hello, I'm your AI procurement officer",
+    "subtitle": "Tell me what you need to procure and I'll help you create the tender — from the description and budget to evaluation criteria, requirements, and Estonian Public Procurement Act compliance. I can also draft RFPs, find vendors, and benchmark fair budgets.",
+    "suggestion_1_title": "Create a tender",
+    "suggestion_1_text": "I need to procure IT support for the city",
+    "suggestion_2_title": "Draft an RFP",
+    "suggestion_2_text": "Help me write the technical specs",
+    "suggestion_3_title": "Set a fair budget",
+    "suggestion_3_text": "What should road maintenance cost?",
+    "suggestion_4_title": "Find vendors",
+    "suggestion_4_text": "Who can deliver this in Estonia?"
   },
   "chat": {
-    "placeholder": "Search tenders, ask about procurement...",
+    "placeholder": "Describe what you want to procure...",
     "thinking": "Understanding your query...",
     "understanding": "Understanding your query",
     "searching": "Searching tenders",
@@ -132,13 +161,14 @@
     "you": "You",
     "tendly_ai": "Tendly AI",
     "stream_error": "Sorry, something went wrong. Please try again.",
-    "disclaimer": "Tendly Chat searches across Estonia and United Kingdom. Results are for informational purposes.",
+    "disclaimer": "Tendly Buyer drafts plans under Estonian Public Procurement Act (RHS 2017). Review before publishing.",
     "enter_to_send": "to send",
     "copy": "Copy",
     "copied": "Copied",
     "copy_link": "Copy link",
     "link_copied": "Link copied",
-    "messages_remaining": "{remaining} of {limit} messages remaining"
+    "messages_remaining": "{remaining} of {limit} messages remaining",
+    "attach_file": "Attach file"
   },
   "tender": {
     "matching": "Matching tenders",
@@ -196,7 +226,9 @@
     "requirements": "Requirements",
     "price_benchmark": "Price Benchmarks",
     "rfp_draft": "RFP Draft",
-    "close": "Close panel"
+    "close": "Close panel",
+    "create_plan": "New procurement plan",
+    "legal_lookup": "Legal source"
   },
   "language": {
     "switch": "Language"
@@ -244,6 +276,7 @@
     "title": "AI Document Review",
     "run_review": "Run AI Review",
     "rerun_review": "Re-run Review",
+    "view_review": "View Review",
     "analyzing": "Analyzing documents...",
     "quality_score": "Quality",
     "completeness": "Completeness",
@@ -267,5 +300,22 @@
     "feature_pipeline": "Save tenders to pipeline",
     "view_plans": "View plans",
     "dismiss": "Maybe later"
+  },
+  "form": {
+    "title": "Title",
+    "type": "Type",
+    "content_notes": "Content / Notes",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "specialty": "Specialty",
+    "document_title_placeholder": "Document title",
+    "document_content_placeholder": "Paste document content or notes here...",
+    "full_name_placeholder": "Full name",
+    "email_placeholder": "email@org.ee"
+  },
+  "create_plan": {
+    "created": "Created",
+    "open_plan": "Open plan"
   }
 }

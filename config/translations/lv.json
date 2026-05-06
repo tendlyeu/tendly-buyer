@@ -10,19 +10,19 @@
     "no_conversations": "Sarunu vēl nav"
   },
   "welcome": {
-    "title": "Laipni lūdzam Tendly čatā",
-    "subtitle": "Jūsu AI asistents valsts iepirkumu izlūkošanai. Meklējiet iepirkumus, analizējiet iespējas un iegūstiet ieskatus no Igaunijas un Lielbritānijas.",
-    "suggestion_1_title": "Meklēt iepirkumus",
-    "suggestion_1_text": "IT iepirkumi Igaunijā",
-    "suggestion_2_title": "Izpētīt tirgus",
-    "suggestion_2_text": "Būvniecības iespējas Latvijā",
-    "suggestion_3_title": "Analizēt iespējas",
-    "suggestion_3_text": "Augstas vērtības medicīnas iepirkumi",
-    "suggestion_4_title": "Iegūt ieskatus",
-    "suggestion_4_text": "Salīdzināt IT tirgus dažādās valstīs"
+    "title": "Sveiki, esmu jūsu AI iepirkumu speciālists",
+    "subtitle": "Pastāstiet, ko jums jāiepirk, un es palīdzēšu izveidot iepirkumu — no apraksta un budžeta līdz vērtēšanas kritērijiem un prasībām.",
+    "suggestion_1_title": "Izveidot iepirkumu",
+    "suggestion_1_text": "Man jāiepērk IT atbalsts pašvaldībai",
+    "suggestion_2_title": "Sagatavot RFP",
+    "suggestion_2_text": "Palīdzi sagatavot tehnisko specifikāciju",
+    "suggestion_3_title": "Noteikt godīgu budžetu",
+    "suggestion_3_text": "Cik vajadzētu maksāt ceļu uzturēšanai?",
+    "suggestion_4_title": "Atrast piegādātājus",
+    "suggestion_4_text": "Kurš var to piegādāt Igaunijā?"
   },
   "chat": {
-    "placeholder": "Meklēt iepirkumus, jautāt par iepirkumiem...",
+    "placeholder": "Aprakstiet, ko vēlaties iepirkt...",
     "thinking": "Analizēju jūsu vaicājumu...",
     "understanding": "Analizēju jūsu vaicājumu",
     "searching": "Meklēju iepirkumus",
@@ -33,13 +33,14 @@
     "you": "Jūs",
     "tendly_ai": "Tendly AI",
     "stream_error": "Atvainojiet, radās kļūda. Lūdzu, mēģiniet vēlreiz.",
-    "disclaimer": "Tendly Chat meklē Igaunijā un Lielbritānijā. Rezultāti ir tikai informatīviem nolūkiem.",
+    "disclaimer": "Tendly sagatavo plānus saskaņā ar Igaunijas publisko iepirkumu likumu. Pārbaudiet pirms publicēšanas.",
     "enter_to_send": "lai nosūtītu",
     "copy": "Kopēt",
     "copied": "Nokopēts",
     "copy_link": "Kopēt saiti",
     "link_copied": "Saite nokopēta",
-    "messages_remaining": "{remaining} no {limit} ziņojumiem atlikuši"
+    "messages_remaining": "{remaining} no {limit} ziņojumiem atlikuši",
+    "attach_file": "Pievienot failu"
   },
   "tender": {
     "matching": "Atbilstoši iepirkumi",
@@ -126,5 +127,61 @@
     "feature_pipeline": "Saglabāt iepirkumus caurulvadā",
     "view_plans": "Skatīt plānus",
     "dismiss": "Varbūt vēlāk"
+  },
+  "form": {
+    "title": "Nosaukums",
+    "type": "Tips",
+    "content_notes": "Saturs / Piezīmes",
+    "name": "Vārds",
+    "email": "E-pasts",
+    "role": "Loma",
+    "specialty": "Specialitāte",
+    "document_title_placeholder": "Dokumenta nosaukums",
+    "document_content_placeholder": "Ielīmējiet dokumenta saturu vai piezīmes šeit...",
+    "full_name_placeholder": "Pilns vārds",
+    "email_placeholder": "email@org.lv"
+  },
+  "procurements": {
+    "evaluation_criteria": "Vērtēšanas kritēriji",
+    "requirements": "Prasības",
+    "step_not_found": "Solis nav atrasts",
+    "complete_step": "Pabeigt soli",
+    "back_to_plan": "Atpakaļ pie plāna",
+    "step": "Solis",
+    "assigned_role": "Piešķirtā loma",
+    "completed_by": "Pabeidza",
+    "what_to_do": "Ko darīt šajā solī",
+    "edit_title": "Rediģēt iepirkuma plānu",
+    "save": "Saglabāt izmaiņas",
+    "mark_complete_short": "Atzīmēt kā pabeigtu",
+    "step_name_domain_review": "Vajadzību pārskats",
+    "step_name_market_research": "Tirgus izpēte",
+    "step_name_plan_review": "Plāna pārskats",
+    "step_name_board_approval": "Budžeta apstiprināšana",
+    "step_name_document_preparation": "Dokumentu sagatavošana",
+    "role_domain_lead": "Jomas vadītājs",
+    "role_procurement_manager": "Iepirkumu vadītājs",
+    "role_board": "Valde",
+    "role_domain_specialist": "Jomas speciālists"
+  },
+  "create_plan": {
+    "created": "Izveidots",
+    "open_plan": "Atvērt plānu"
+  },
+  "canvas": {
+    "create_plan": "Jauns iepirkuma plāns",
+    "legal_lookup": "Juridiskais avots"
+  },
+  "registry": {
+    "back_to_registry": "Atpakaļ uz reģistru",
+    "country": "Valsts",
+    "estimated_value": "Paredzamā vērtība",
+    "deadline": "Termiņš",
+    "description": "Apraksts",
+    "benchmark_in_chat": "Salīdzināt sarakstē",
+    "open_source": "Atvērt avotu"
+  },
+  "documents": {
+    "file_label": "Fails (PDF, DOCX, XLSX, TXT, CSV — līdz 10 MB)"
   }
 }

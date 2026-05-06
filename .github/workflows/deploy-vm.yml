@@ -1,0 +1,325 @@
+name: Deploy Tendly Buyer to GCE
+
+# Provisions (idempotently) and deploys tendly-buyer to a small GCE VM with a
+# dedicated small Cloud SQL instance. Re-running the workflow is safe — every
+# resource creation step is guarded by a "describe || create" check.
+#
+# Required GitHub secrets:
+#   GCP_SA_KEY  Service-account JSON key with the roles listed in deploy/README.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: choice
+        options:
+          - prod
+        default: 'prod'
+
+env:
+  GCP_PROJECT_ID: scenic-impact-476918-n6
+  GCP_REGION: europe-north1
+  GCP_ZONE: europe-north1-b
+  AR_REPO: tendly-buyer
+  IMAGE_NAME: tendly-buyer
+  VM_NAME: tendly-buyer-vm
+  VM_MACHINE_TYPE: e2-small
+  VM_DISK_SIZE_GB: '20'
+  DB_INSTANCE_NAME: tendly-buyer-db
+  DB_TIER: db-f1-micro
+  DB_NAME: tendly_buyer
+  DB_USER: tendly_buyer
+  RUNTIME_SA: tendly-buyer-vm-sa
+  BUYER_DB_PASSWORD_SECRET: tendly-buyer-prod-buyer-db-password
+  SESSION_SECRET_NAME: tendly-buyer-prod-session-secret
+  PROD_DB_PASSWORD_SECRET: tendly-prod-db-password
+  GEMINI_KEY_SECRET: tendly-prod-gemini-api-key
+  TOGETHER_KEY_SECRET: tendly-prod-together-api-key
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Enable required APIs
+        run: |
+          gcloud services enable \
+            compute.googleapis.com \
+            sqladmin.googleapis.com \
+            servicenetworking.googleapis.com \
+            artifactregistry.googleapis.com \
+            secretmanager.googleapis.com \
+            iam.googleapis.com \
+            iap.googleapis.com \
+            --project="$GCP_PROJECT_ID"
+
+      - name: Ensure runtime service account
+        run: |
+          SA_EMAIL="${RUNTIME_SA}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+          if ! gcloud iam service-accounts describe "$SA_EMAIL" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            gcloud iam service-accounts create "$RUNTIME_SA" \
+              --display-name="Tendly Buyer VM runtime" \
+              --project="$GCP_PROJECT_ID"
+          fi
+          for ROLE in \
+            roles/cloudsql.client \
+            roles/secretmanager.secretAccessor \
+            roles/artifactregistry.reader \
+            roles/logging.logWriter \
+            roles/monitoring.metricWriter; do
+            gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
+              --member="serviceAccount:$SA_EMAIL" \
+              --role="$ROLE" \
+              --condition=None \
+              --quiet >/dev/null
+          done
+
+      - name: Ensure Artifact Registry repo
+        run: |
+          gcloud artifacts repositories describe "$AR_REPO" \
+            --location="$GCP_REGION" \
+            --project="$GCP_PROJECT_ID" >/dev/null 2>&1 || \
+          gcloud artifacts repositories create "$AR_REPO" \
+            --repository-format=docker \
+            --location="$GCP_REGION" \
+            --description="Tendly Buyer images" \
+            --project="$GCP_PROJECT_ID"
+
+      - name: Ensure Cloud SQL instance
+        run: |
+          if ! gcloud sql instances describe "$DB_INSTANCE_NAME" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            echo "Creating Cloud SQL instance $DB_INSTANCE_NAME (this takes ~10 min)..."
+            gcloud sql instances create "$DB_INSTANCE_NAME" \
+              --project="$GCP_PROJECT_ID" \
+              --database-version=POSTGRES_15 \
+              --tier="$DB_TIER" \
+              --region="$GCP_REGION" \
+              --storage-size=10GB \
+              --storage-type=HDD \
+              --backup-start-time=03:00 \
+              --availability-type=ZONAL \
+              --no-deletion-protection
+          else
+            echo "Cloud SQL instance already exists."
+          fi
+
+      - name: Ensure Secret Manager secrets
+        run: |
+          if ! gcloud secrets describe "$BUYER_DB_PASSWORD_SECRET" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            openssl rand -base64 30 | tr -d '/+=\n' | head -c 32 \
+              | gcloud secrets create "$BUYER_DB_PASSWORD_SECRET" \
+                  --project="$GCP_PROJECT_ID" \
+                  --replication-policy=automatic \
+                  --data-file=-
+          fi
+          if ! gcloud secrets describe "$SESSION_SECRET_NAME" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            openssl rand -hex 32 | tr -d '\n' \
+              | gcloud secrets create "$SESSION_SECRET_NAME" \
+                  --project="$GCP_PROJECT_ID" \
+                  --replication-policy=automatic \
+                  --data-file=-
+          fi
+          SA_EMAIL="${RUNTIME_SA}@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+          for S in \
+            "$BUYER_DB_PASSWORD_SECRET" \
+            "$SESSION_SECRET_NAME" \
+            "$PROD_DB_PASSWORD_SECRET" \
+            "$GEMINI_KEY_SECRET"; do
+            gcloud secrets add-iam-policy-binding "$S" \
+              --project="$GCP_PROJECT_ID" \
+              --member="serviceAccount:$SA_EMAIL" \
+              --role="roles/secretmanager.secretAccessor" \
+              --quiet >/dev/null 2>&1 || true
+          done
+
+      - name: Ensure DB and DB user
+        run: |
+          gcloud sql databases describe "$DB_NAME" \
+            --instance="$DB_INSTANCE_NAME" \
+            --project="$GCP_PROJECT_ID" >/dev/null 2>&1 || \
+          gcloud sql databases create "$DB_NAME" \
+            --instance="$DB_INSTANCE_NAME" \
+            --project="$GCP_PROJECT_ID"
+
+          DB_PASS=$(gcloud secrets versions access latest \
+            --secret="$BUYER_DB_PASSWORD_SECRET" \
+            --project="$GCP_PROJECT_ID")
+
+          if gcloud sql users list \
+              --instance="$DB_INSTANCE_NAME" \
+              --project="$GCP_PROJECT_ID" \
+              --format="value(name)" | grep -qx "$DB_USER"; then
+            gcloud sql users set-password "$DB_USER" \
+              --instance="$DB_INSTANCE_NAME" \
+              --project="$GCP_PROJECT_ID" \
+              --password="$DB_PASS"
+          else
+            gcloud sql users create "$DB_USER" \
+              --instance="$DB_INSTANCE_NAME" \
+              --project="$GCP_PROJECT_ID" \
+              --password="$DB_PASS"
+          fi
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and push image
+        id: build
+        env:
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          IMAGE_URI="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${AR_REPO}/${IMAGE_NAME}:${GIT_SHA}"
+          IMAGE_LATEST="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${AR_REPO}/${IMAGE_NAME}:latest"
+          docker build -t "$IMAGE_URI" -t "$IMAGE_LATEST" .
+          docker push "$IMAGE_URI"
+          docker push "$IMAGE_LATEST"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure VM
+        run: |
+          if ! gcloud compute instances describe "$VM_NAME" \
+                --zone="$GCP_ZONE" \
+                --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            echo "Creating VM $VM_NAME..."
+            gcloud compute instances create "$VM_NAME" \
+              --project="$GCP_PROJECT_ID" \
+              --zone="$GCP_ZONE" \
+              --machine-type="$VM_MACHINE_TYPE" \
+              --image-family=debian-12 \
+              --image-project=debian-cloud \
+              --boot-disk-size="${VM_DISK_SIZE_GB}GB" \
+              --boot-disk-type=pd-balanced \
+              --service-account="${RUNTIME_SA}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+              --scopes=cloud-platform \
+              --tags=http-server,https-server,tendly-buyer \
+              --metadata-from-file=startup-script=deploy/vm-startup.sh
+            echo "Waiting for startup script to install Docker..."
+            for i in $(seq 1 30); do
+              if gcloud compute ssh "$VM_NAME" \
+                   --zone="$GCP_ZONE" \
+                   --project="$GCP_PROJECT_ID" \
+                   --tunnel-through-iap \
+                   --command="test -f /var/lib/tendly-buyer-bootstrapped" >/dev/null 2>&1; then
+                echo "VM bootstrapped."
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 10
+            done
+          else
+            echo "VM already exists."
+          fi
+
+      - name: Ensure firewall rules (HTTP + IAP SSH)
+        run: |
+          gcloud compute firewall-rules describe tendly-buyer-allow-http \
+            --project="$GCP_PROJECT_ID" >/dev/null 2>&1 || \
+          gcloud compute firewall-rules create tendly-buyer-allow-http \
+            --project="$GCP_PROJECT_ID" \
+            --network=default \
+            --direction=INGRESS \
+            --action=ALLOW \
+            --rules=tcp:80,tcp:443 \
+            --source-ranges=0.0.0.0/0 \
+            --target-tags=tendly-buyer
+
+          gcloud compute firewall-rules describe tendly-buyer-allow-iap-ssh \
+            --project="$GCP_PROJECT_ID" >/dev/null 2>&1 || \
+          gcloud compute firewall-rules create tendly-buyer-allow-iap-ssh \
+            --project="$GCP_PROJECT_ID" \
+            --network=default \
+            --direction=INGRESS \
+            --action=ALLOW \
+            --rules=tcp:22 \
+            --source-ranges=35.235.240.0/20 \
+            --target-tags=tendly-buyer
+
+      - name: Render compose file and env
+        env:
+          IMAGE_URI: ${{ steps.build.outputs.image_uri }}
+        run: |
+          mkdir -p .deploy_tmp
+
+          DB_PASS_BUYER=$(gcloud secrets versions access latest --secret="$BUYER_DB_PASSWORD_SECRET" --project="$GCP_PROJECT_ID")
+          DB_PASS_PROD=$(gcloud secrets versions access latest --secret="$PROD_DB_PASSWORD_SECRET" --project="$GCP_PROJECT_ID")
+          GEMINI_KEY=$(gcloud secrets versions access latest --secret="$GEMINI_KEY_SECRET" --project="$GCP_PROJECT_ID")
+          TOGETHER_KEY=$(gcloud secrets versions access latest --secret="$TOGETHER_KEY_SECRET" --project="$GCP_PROJECT_ID" 2>/dev/null || echo "")
+          SESSION_SECRET_VAL=$(gcloud secrets versions access latest --secret="$SESSION_SECRET_NAME" --project="$GCP_PROJECT_ID")
+
+          cp deploy/docker-compose.prod.yml .deploy_tmp/docker-compose.yml
+
+          # The .env file is consumed by both `docker compose` (variable
+          # interpolation: IMAGE_URI, BUYER_DB_INSTANCE) AND by the app
+          # container (env_file).
+          cat > .deploy_tmp/.env <<ENV
+          IMAGE_URI=${IMAGE_URI}
+          BUYER_DB_INSTANCE=${GCP_PROJECT_ID}:${GCP_REGION}:${DB_INSTANCE_NAME}
+          USE_GCP_CLOUD_SQL=true
+          CLOUD_SQL_INSTANCE=${GCP_PROJECT_ID}:${GCP_REGION}:tendly-prod
+          DB_NAME=tendly_prod
+          DB_USER=tendly_admin
+          DB_PASSWORD=${DB_PASS_PROD}
+          TENDLY_DB_URL=postgresql://${DB_USER}:${DB_PASS_BUYER}@buyer-db-proxy:5432/${DB_NAME}
+          GEMINI_API_KEY=${GEMINI_KEY}
+          TOGETHER_API_KEY=${TOGETHER_KEY}
+          SESSION_SECRET=${SESSION_SECRET_VAL}
+          PORT=5002
+          ENVIRONMENT=production
+          ENV
+
+      - name: Copy artifacts to VM
+        run: |
+          gcloud compute scp \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT_ID" \
+            --tunnel-through-iap \
+            .deploy_tmp/docker-compose.yml \
+            .deploy_tmp/.env \
+            "${VM_NAME}:/tmp/"
+
+      - name: Deploy on VM
+        run: |
+          gcloud compute ssh "$VM_NAME" \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT_ID" \
+            --tunnel-through-iap \
+            --command="
+              set -e
+              sudo mkdir -p /opt/tendly-buyer
+              sudo mv /tmp/docker-compose.yml /opt/tendly-buyer/docker-compose.yml
+              sudo mv /tmp/.env /opt/tendly-buyer/.env
+              sudo chmod 600 /opt/tendly-buyer/.env
+              cd /opt/tendly-buyer
+              sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev --quiet
+              sudo docker compose pull
+              sudo docker compose up -d buyer-db-proxy
+              sleep 8
+              sudo docker compose run --rm app python sql/run_migrations.py
+              sudo docker compose up -d
+              sudo docker image prune -f
+              sudo docker compose ps
+            "
+
+      - name: Show app URL
+        run: |
+          IP=$(gcloud compute instances describe "$VM_NAME" \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT_ID" \
+            --format='value(networkInterfaces[0].accessConfigs[0].natIP)')
+          echo ""
+          echo "============================================"
+          echo " Tendly Buyer is up at: http://${IP}/"
+          echo "============================================"

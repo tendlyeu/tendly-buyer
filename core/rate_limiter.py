@@ -2,11 +2,13 @@
 Rate limiter for Tendly Chat.
 Tracks usage by IP (anonymous) and user email (authenticated).
 Limits:
-- Anonymous: 5 messages total
-- Free users (starter plan): 20 messages per day
+- Anonymous: 5 messages total (override with TENDLY_ANON_LIMIT)
+- Authenticated users: UNLIMITED by default. Set TENDLY_FREE_DAILY_LIMIT
+  to a positive integer to re-enable the per-user daily cap (was 20).
 - Paid users (professional/enterprise): Unlimited
 """
 
+import os
 import time
 from collections import defaultdict
 
@@ -15,9 +17,11 @@ from collections import defaultdict
 _ip_usage = defaultdict(list)      # IP -> list of timestamps
 _user_usage = defaultdict(list)    # email -> list of timestamps
 
-# Limits
-ANONYMOUS_LIMIT = 5                 # Total messages for non-logged-in users
-FREE_USER_DAILY_LIMIT = 20          # Messages per day for free users
+# Limits — env-overridable so staging / load tests can lift the cap
+# without code changes. 0 (or negative) = unlimited.
+ANONYMOUS_LIMIT = int(os.environ.get("TENDLY_ANON_LIMIT", "5"))
+# Default 0 → no daily cap for any logged-in user.
+FREE_USER_DAILY_LIMIT = int(os.environ.get("TENDLY_FREE_DAILY_LIMIT", "0"))
 PAID_PLANS = {"professional", "enterprise"}
 
 # Time window: 24 hours in seconds
@@ -74,6 +78,19 @@ def check_rate_limit(request, user_email=None):
                 "limit": -1,
                 "reason": "",
                 "tier": "paid",
+            }
+
+        # FREE_USER_DAILY_LIMIT <= 0 means "unlimited" (the default since
+        # we want logged-in buyers to use the chat freely while drafting
+        # tenders). Set TENDLY_FREE_DAILY_LIMIT=20 in the env to bring
+        # the old cap back.
+        if FREE_USER_DAILY_LIMIT <= 0:
+            return {
+                "allowed": True,
+                "remaining": -1,
+                "limit": -1,
+                "reason": "",
+                "tier": "free",
             }
 
         # Free user: daily limit
