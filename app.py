@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 from fasthtml.common import *
-from starlette.middleware.sessions import SessionMiddleware
 
 # GA4 Measurement ID (same as main tendly app for cross-domain tracking)
 GA4_MEASUREMENT_ID = "G-EVV9Z173MN"
@@ -78,7 +77,15 @@ from routes import register_routes
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------
+# NOTE: pass secret_key to fast_app so its built-in SessionMiddleware uses
+# our SESSION_SECRET (matches main tendly app for shared auth) instead of a
+# random per-process key. We do NOT add a second SessionMiddleware below —
+# adding two creates conflicting `session` and `session_` cookies that desync
+# auth state across requests (logged-in users get bounced back to /login).
+SESSION_SECRET = os.environ.get("SESSION_SECRET", "tendly-dev-secret-key")
+
 app, rt = fast_app(
+    secret_key=SESSION_SECRET,
     hdrs=[
         Meta(charset="utf-8"),
         Meta(name="viewport", content="width=device-width, initial-scale=1"),
@@ -125,9 +132,6 @@ app, rt = fast_app(
 )
 
 register_routes(app, chat_service)
-
-# Add session middleware (same secret as main tendly app for shared auth)
-app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET", "tendly-dev-secret-key"))
 
 # ---------------------------------------------------------------------------
 # Entry point

@@ -7,16 +7,29 @@ from components.dashboard.overview import procurement_card
 from components.procurements.ai_review_panel import ai_review_section
 
 
-PROCUREMENT_CATEGORIES = [
-    ("it", "IT & Technology"),
-    ("kinnisvara", "Real Estate / Kinnisvara"),
-    ("personal", "Personnel / Personal"),
-    ("toitlustus", "Catering / Toitlustus"),
-    ("ehitus", "Construction / Ehitus"),
-    ("transport", "Transport"),
-    ("meditsiiniline", "Medical / Meditsiiniline"),
-    ("haridus", "Education / Haridus"),
-    ("muu", "Other / Muu"),
+PROCUREMENT_CATEGORY_KEYS = [
+    ("it", "procurements.category_it"),
+    ("kinnisvara", "procurements.category_real_estate"),
+    ("personal", "procurements.category_personnel"),
+    ("toitlustus", "procurements.category_catering"),
+    ("ehitus", "procurements.category_construction"),
+    ("transport", "procurements.category_transport"),
+    ("meditsiiniline", "procurements.category_medical"),
+    ("haridus", "procurements.category_education"),
+    ("muu", "procurements.category_other"),
+]
+
+
+def _get_procurement_categories(language="en"):
+    return [(val, t(key, language)) for val, key in PROCUREMENT_CATEGORY_KEYS]
+
+
+PROCUREMENT_METHOD_KEYS = [
+    ("open", "procurements.method_open"),
+    ("restricted", "procurements.method_restricted"),
+    ("negotiated", "procurements.method_negotiated"),
+    ("framework", "procurements.method_framework"),
+    ("simplified", "procurements.method_simplified"),
 ]
 
 WORKFLOW_STEPS = [
@@ -84,15 +97,19 @@ _DYNAMIC_FORM_JS = Script("""
         var phText = container.getAttribute('data-ph-text') || 'Requirement';
         var lblMandatory = container.getAttribute('data-lbl-mandatory') || 'Mandatory';
         var lblPreferred = container.getAttribute('data-lbl-preferred') || 'Preferred';
+        var lblQualification = container.getAttribute('data-lbl-qualification') || 'Qualification';
+        var lblCompliance = container.getAttribute('data-lbl-compliance') || 'Compliance';
+        var lblServiceLevel = container.getAttribute('data-lbl-service-level') || 'Service level';
+        var lblExperience = container.getAttribute('data-lbl-experience') || 'Experience';
         var idx = reqIdx;
 
         var textInput = makeEl('input', {type:'text', name:'req_text_'+idx, placeholder:phText, class:'form-input', style:'flex:3;'});
 
         var typeSelect = makeEl('select', {name:'req_type_'+idx, class:'form-select', style:'flex:0 0 130px;'}, [
-            makeEl('option', {value:'qualification'}, ['Qualification']),
-            makeEl('option', {value:'compliance'}, ['Compliance']),
-            makeEl('option', {value:'service_level'}, ['Service level']),
-            makeEl('option', {value:'experience'}, ['Experience'])
+            makeEl('option', {value:'qualification'}, [lblQualification]),
+            makeEl('option', {value:'compliance'}, [lblCompliance]),
+            makeEl('option', {value:'service_level'}, [lblServiceLevel]),
+            makeEl('option', {value:'experience'}, [lblExperience])
         ]);
 
         var prioSelect = makeEl('select', {name:'req_priority_'+idx, class:'form-select', style:'flex:0 0 110px;'}, [
@@ -255,7 +272,7 @@ def procurement_new_page(language="en", plan=None):
 
     category_options = []
     cur_cat = (plan.get("category") or "").lower()
-    for val, label in PROCUREMENT_CATEGORIES:
+    for val, label in _get_procurement_categories(language):
         opt_kwargs = {"value": val}
         if cur_cat and val.lower() == cur_cat:
             opt_kwargs["selected"] = True
@@ -362,11 +379,7 @@ def procurement_new_page(language="en", plan=None):
                 Div(
                     Label(t("procurements.field_method", language), fr="procurement_method", cls="form-label"),
                     Select(
-                        _method_opt("Open procedure / Avatud hange", "open"),
-                        _method_opt("Restricted procedure / Piiratud hange", "restricted"),
-                        _method_opt("Negotiated procedure / Väljakuulutamisega läbirääkimistega hange", "negotiated"),
-                        _method_opt("Framework agreement / Raamleping", "framework"),
-                        _method_opt("Simplified / Lihthange", "simplified"),
+                        *[_method_opt(t(key, language), val) for val, key in PROCUREMENT_METHOD_KEYS],
                         name="procurement_method", id="procurement_method", cls="form-select",
                     ),
                     cls="form-group",
@@ -428,7 +441,7 @@ def procurement_new_page(language="en", plan=None):
                 Div(
                     Span(t("procurements.requirements_title", language), style="flex:3;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;"),
                     Span(t("procurements.requirement_type", language), style="flex:0 0 130px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;"),
-                    Span("Priority", style="flex:0 0 110px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;"),
+                    Span(t("procurements.priority", language), style="flex:0 0 110px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;"),
                     Span("", style="width:32px;"),
                     style="display:flex;gap:8px;padding:0 0 6px;",
                     cls="dynamic-row-header",
@@ -439,6 +452,10 @@ def procurement_new_page(language="en", plan=None):
                         "data-ph-text": t("procurements.requirements_title", language),
                         "data-lbl-mandatory": t("procurements.mandatory", language),
                         "data-lbl-preferred": t("procurements.preferred", language),
+                        "data-lbl-qualification": t("procurements.req_qualification", language),
+                        "data-lbl-compliance": t("procurements.req_compliance", language),
+                        "data-lbl-service-level": t("procurements.req_service_level", language),
+                        "data-lbl-experience": t("procurements.req_experience", language),
                     },
                 ),
                 Input(type="hidden", name="requirements_json",

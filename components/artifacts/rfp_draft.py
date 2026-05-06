@@ -1,5 +1,6 @@
 """RFP draft artifact renderer for the canvas panel."""
 
+import json as _json
 from fasthtml.common import *
 
 
@@ -11,6 +12,75 @@ PRIORITY_COLORS = {
 }
 
 
+def _rfp_to_markdown(rfp: dict) -> str:
+    """Flatten the RFP dict into a copy-pastable Markdown string."""
+    lines = []
+    title = rfp.get("title") or "RFP Draft"
+    lines.append(f"# {title}")
+    lines.append("")
+    meta_parts = []
+    if rfp.get("category"):
+        meta_parts.append(f"**Category:** {rfp.get('category')}")
+    if rfp.get("cpv_code"):
+        meta_parts.append(f"**CPV:** {rfp.get('cpv_code')}")
+    if rfp.get("procedure_type"):
+        meta_parts.append(f"**Procedure:** {rfp.get('procedure_type')}")
+    if rfp.get("estimated_value"):
+        meta_parts.append(f"**Estimated value:** {rfp.get('estimated_value')} {rfp.get('currency') or ''}".strip())
+    if meta_parts:
+        lines.append(" · ".join(meta_parts))
+        lines.append("")
+
+    sections = rfp.get("sections") or {}
+    if sections.get("scope_of_work"):
+        lines += ["## Scope of Work", sections["scope_of_work"], ""]
+    if sections.get("requirements"):
+        lines += ["## Requirements", sections["requirements"], ""]
+    crit = sections.get("evaluation_criteria") or []
+    if crit:
+        lines.append("## Evaluation Criteria")
+        for c in crit:
+            name = c.get("name", "?")
+            weight = c.get("weight", "?")
+            desc = c.get("description", "")
+            line = f"- **{name}** ({weight}%)"
+            if desc:
+                line += f" — {desc}"
+            lines.append(line)
+        lines.append("")
+    quals = sections.get("qualification_requirements") or []
+    if quals:
+        lines.append("## Qualification Requirements")
+        for q in quals:
+            req = q.get("requirement", "?")
+            t = q.get("type", "")
+            ev = q.get("evidence", "")
+            line = f"- {req}"
+            if t:
+                line += f" _(type: {t})_"
+            if ev:
+                line += f" — Evidence: {ev}"
+            lines.append(line)
+        lines.append("")
+    if sections.get("contract_terms"):
+        lines += ["## Contract Terms", sections["contract_terms"], ""]
+    if sections.get("submission_instructions"):
+        lines += ["## Submission Instructions", sections["submission_instructions"], ""]
+    timeline = sections.get("timeline") or {}
+    if timeline:
+        lines.append("## Timeline")
+        for k, v in timeline.items():
+            lines.append(f"- **{k.replace('_', ' ').title()}:** {v}")
+        lines.append("")
+    notes = rfp.get("compliance_notes") or []
+    if notes:
+        lines.append("## Compliance Notes")
+        for n in notes:
+            lines.append(f"- {n}")
+        lines.append("")
+    return "\n".join(lines).strip()
+
+
 def rfp_draft_panel(data: dict, language: str = "en"):
     """Render RFP draft as HTML for the canvas."""
     if not data:
@@ -18,6 +88,43 @@ def rfp_draft_panel(data: dict, language: str = "en"):
 
     rfp = data.get("rfp") or {}
     sections = []
+
+    # Action bar: Copy + Download (so the user can actually USE the
+    # generated draft instead of just looking at it).
+    rfp_md = _rfp_to_markdown(rfp)
+    rfp_md_js = _json.dumps(rfp_md)
+    title_for_file = (rfp.get("title") or "rfp-draft").lower().replace(" ", "-")
+    action_bar = Div(
+        Button(
+            "Copy",
+            type="button",
+            cls="btn-secondary",
+            style="font-size:12px;padding:5px 12px;",
+            onclick=(
+                f"(function(){{var t={rfp_md_js};"
+                f"navigator.clipboard.writeText(t).then(function(){{"
+                f"var s=document.getElementById('rfp-copy-status');"
+                f"if(s){{s.textContent='Copied';setTimeout(function(){{s.textContent='';}},1800);}}"
+                f"}});}})()"
+            ),
+        ),
+        Button(
+            "Download .md",
+            type="button",
+            cls="btn-secondary",
+            style="font-size:12px;padding:5px 12px;",
+            onclick=(
+                f"(function(){{var t={rfp_md_js};"
+                f"var b=new Blob([t],{{type:'text/markdown'}});"
+                f"var u=URL.createObjectURL(b);var a=document.createElement('a');"
+                f"a.href=u;a.download='{title_for_file}.md';document.body.appendChild(a);a.click();"
+                f"document.body.removeChild(a);URL.revokeObjectURL(u);}})()"
+            ),
+        ),
+        Span("", id="rfp-copy-status", style="font-size:12px;color:#16a34a;align-self:center;"),
+        style="display:flex;gap:8px;padding:8px 20px;border-bottom:1px solid #f3f4f6;background:#fafafa;",
+    )
+    sections.append(action_bar)
 
     # Title and metadata
     title = rfp.get("title", "RFP Draft")

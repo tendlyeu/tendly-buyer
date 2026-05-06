@@ -64,10 +64,23 @@ def _registry_page(tenders_data, query, country_filter, language="en"):
 
     search_bar = Form(
         Div(
-            Input(name="q", type="text", value=query, placeholder=t("registry.search_placeholder", language), cls="form-input", style="flex:1;"),
-            Select(*country_options, name="country", cls="form-select", style="width:180px;"),
-            Button(t("registry.search", language), type="submit", cls="btn-primary", style="white-space:nowrap;"),
-            style="display:flex;gap:10px;align-items:center;",
+            Input(
+                name="q", type="text", value=query,
+                placeholder=t("registry.search_placeholder", language),
+                cls="form-input registry-search-input",
+                style="padding:10px 14px;font-size:14px;height:42px;box-sizing:border-box;width:100%;min-width:0;",
+            ),
+            Select(
+                *country_options, name="country",
+                cls="form-select",
+                style="padding:10px 14px;font-size:14px;height:42px;box-sizing:border-box;width:100%;",
+            ),
+            Button(
+                t("registry.search", language), type="submit",
+                cls="btn-primary",
+                style="white-space:nowrap;height:42px;padding:0 22px;width:100%;justify-content:center;",
+            ),
+            style="display:grid;grid-template-columns:1fr 200px 120px;gap:10px;align-items:center;width:100%;",
         ),
         action="/registry",
         method="get",
@@ -168,7 +181,8 @@ def register_registry_routes(rt, chat_service):
         cpv_name = detail.get("cpv_name", "")
         description = (detail.get("description_original")
                        or detail.get("description") or "")
-        source_url = detail.get("source_url", "") or detail.get("tendly_url", "")
+        source_url = detail.get("source_url", "") or ""
+        tendly_url = detail.get("tendly_url", "") or ""
 
         info_cards = [
             Div(
@@ -209,7 +223,11 @@ def register_registry_routes(rt, chat_service):
                href=source_url, target="_blank", rel="noopener",
                cls="btn-secondary",
                style="font-size:13px;padding:6px 14px;") if source_url else ""),
-            style="display:flex;gap:8px;",
+            (A(t("registry.view_on_tendly", language) or "View on Tendly",
+               href=tendly_url, target="_blank", rel="noopener",
+               cls="btn-secondary",
+               style="font-size:13px;padding:6px 14px;") if tendly_url else ""),
+            style="display:flex;gap:8px;flex-wrap:wrap;",
         )
 
         content = Div(

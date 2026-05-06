@@ -19,8 +19,9 @@ _user_usage = defaultdict(list)    # email -> list of timestamps
 
 # Limits — env-overridable so staging / load tests can lift the cap
 # without code changes. 0 (or negative) = unlimited.
-ANONYMOUS_LIMIT = int(os.environ.get("TENDLY_ANON_LIMIT", "5"))
-# Default 0 → no daily cap for any logged-in user.
+# Default 0 → no cap for anyone (anonymous or authenticated). Set the
+# corresponding env var to a positive integer to re-enable a cap.
+ANONYMOUS_LIMIT = int(os.environ.get("TENDLY_ANON_LIMIT", "0"))
 FREE_USER_DAILY_LIMIT = int(os.environ.get("TENDLY_FREE_DAILY_LIMIT", "0"))
 PAID_PLANS = {"professional", "enterprise"}
 
@@ -116,7 +117,18 @@ def check_rate_limit(request, user_email=None):
             "tier": "free",
         }
     else:
-        # Anonymous user: total limit tracked by IP
+        # Anonymous user: total limit tracked by IP. ANONYMOUS_LIMIT <= 0
+        # means unlimited (the default — we don't gate the buyer chat at
+        # all anymore). Set TENDLY_ANON_LIMIT in the env to re-enable.
+        if ANONYMOUS_LIMIT <= 0:
+            return {
+                "allowed": True,
+                "remaining": -1,
+                "limit": -1,
+                "reason": "",
+                "tier": "anonymous",
+            }
+
         ip = _get_client_ip(request)
         used = len(_ip_usage[ip])
         remaining = max(0, ANONYMOUS_LIMIT - used)

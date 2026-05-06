@@ -117,6 +117,7 @@ def main():
                 "currency": "EUR",
                 "estimated_cost": 150000.0,
                 "deadline_days": 30,
+                "source_portal_url": "https://riigihanked.riik.ee/rhr-web/#/procurement/1001",
             },
             {
                 "procurement_id": 1002,
@@ -175,6 +176,7 @@ def main():
                 country=s["country"],
                 country_code=s["country_code"],
                 currency=s["currency"],
+                source_portal_url=s.get("source_portal_url", ""),
             )
             d = TenderDetail(
                 procurement_id=s["procurement_id"],

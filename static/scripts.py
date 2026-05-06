@@ -430,7 +430,7 @@ function showCopiedFeedback(btn, labelText) {
     }, 2000);
 }
 
-function createMessageActionBar() {
+function createMessageActionBar(artifact) {
     var bar = document.createElement('div');
     bar.className = 'message-actions';
 
@@ -455,6 +455,31 @@ function createMessageActionBar() {
     linkLabel.textContent = _t('chat.copy_link', 'Copy link');
     linkBtn.appendChild(linkLabel);
     bar.appendChild(linkBtn);
+
+    if (artifact && (artifact.id || artifact.tender_id)) {
+        var openLabel = (_t('chat.reopen_artifact', 'Reopen') + ' ' + (artifact.label || artifact.type || 'artifact')).trim();
+        var openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'msg-action-btn reopen-artifact-btn';
+        openBtn.title = openLabel;
+        openBtn.addEventListener('click', function() {
+            if (artifact.type === 'tender_detail' && artifact.tender_id) {
+                showTenderDetail(artifact.tender_id);
+            } else if (artifact.id) {
+                openArtifact(artifact.type, artifact.id, artifact.label || artifact.type, artifact.conversation_id || '');
+            }
+        });
+        var arrow = document.createElement('span');
+        arrow.style.fontSize = '13px';
+        arrow.style.lineHeight = '1';
+        arrow.textContent = '›';
+        openBtn.appendChild(arrow);
+        var openLbl = document.createElement('span');
+        openLbl.className = 'action-btn-label';
+        openLbl.textContent = openLabel;
+        openBtn.appendChild(openLbl);
+        bar.appendChild(openBtn);
+    }
 
     return bar;
 }
@@ -856,9 +881,11 @@ function sendMessage(text, _attachmentResult) {
                         var chips = createSuggestionChips(suggestions);
                         if (chips) aiMsg.contentDiv.appendChild(chips);
                     }
-                    // Add copy/link action buttons
+                    // Add copy/link action buttons (and a reopen-artifact
+                    // button if the response produced a canvas artifact, so
+                    // the user can bring the side panel back later).
                     if (aiMsg.isAi) {
-                        aiMsg.contentDiv.appendChild(createMessageActionBar());
+                        aiMsg.contentDiv.appendChild(createMessageActionBar(aiMsg._pendingArtifact));
                     }
                     isStreaming = false;
                     if (sendBtn) sendBtn.disabled = false;
@@ -899,25 +926,36 @@ function sendMessage(text, _attachmentResult) {
                                 var artId = parsed.id;
                                 var artTenderId = parsed.tender_id;
                                 var artConvId = parsed.conversation_id || '';
+                                var artLabels = {
+                                    'create_plan': 'New procurement plan',
+                                    'legal_lookup': 'Legal source',
+                                    'tender_comparison': 'Tender Comparison',
+                                    'risk_analysis': 'Risk Analysis',
+                                    'gap_analysis': 'Gap Analysis',
+                                    'requirements': 'Requirements',
+                                    'price_benchmark': 'Price Benchmarks',
+                                    'rfp_draft': 'RFP Draft',
+                                    'tender_detail': 'Tender Detail'
+                                };
+                                var artLabel = _t('canvas.' + artType, artLabels[artType] || artType);
                                 if (artType === 'tender_detail' && artTenderId) {
                                     showTenderDetail(artTenderId);
-                                } else if (artType === 'create_plan' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.create_plan', 'New procurement plan'), artConvId);
-                                } else if (artType === 'legal_lookup' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.legal_lookup', 'Legal source'), artConvId);
-                                } else if (artType === 'tender_comparison' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.tender_comparison', 'Tender Comparison'), artConvId);
-                                } else if (artType === 'risk_analysis' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.risk_analysis', 'Risk Analysis'), artConvId);
-                                } else if (artType === 'gap_analysis' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.gap_analysis', 'Gap Analysis'), artConvId);
-                                } else if (artType === 'requirements' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.requirements', 'Requirements'), artConvId);
-                                } else if (artType === 'price_benchmark' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.price_benchmark', 'Price Benchmarks'), artConvId);
-                                } else if (artType === 'rfp_draft' && artId) {
-                                    openArtifact(artType, artId, _t('canvas.rfp_draft', 'RFP Draft'), artConvId);
+                                } else if (artId) {
+                                    openArtifact(artType, artId, artLabel, artConvId);
                                 }
+                                // Remember the artifact ref on the in-flight
+                                // assistant message so we can render a
+                                // 'Reopen <kind>' button alongside Copy/Link
+                                // when the stream completes. Without this,
+                                // navigating away and back loses the canvas.
+                                ensureAiMsg();
+                                aiMsg._pendingArtifact = {
+                                    type: artType,
+                                    id: artId,
+                                    tender_id: artTenderId,
+                                    label: artLabel,
+                                    conversation_id: artConvId
+                                };
                             } else if (pendingEventType === 'rate_limit') {
                                 // Rate limit hit — show upgrade modal
                                 removeThinking();

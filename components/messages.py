@@ -1,10 +1,64 @@
 """Message and tender card components."""
 
+import json as _json
 from datetime import datetime
 from fasthtml.common import *
 from config.icons import _ICON_COPY, _ICON_LINK
 from core.utils import _raw
 from config.i18n import t
+
+
+# Artifact type → translation key + sensible English fallback for the
+# "Reopen <kind>" button. Mirrors the dispatch in scripts.py SSE handler.
+_ARTIFACT_LABELS = {
+    "rfp_draft": ("canvas.rfp_draft", "RFP Draft"),
+    "create_plan": ("canvas.create_plan", "New procurement plan"),
+    "legal_lookup": ("canvas.legal_lookup", "Legal source"),
+    "tender_comparison": ("canvas.tender_comparison", "Tender Comparison"),
+    "risk_analysis": ("canvas.risk_analysis", "Risk Analysis"),
+    "gap_analysis": ("canvas.gap_analysis", "Gap Analysis"),
+    "requirements": ("canvas.requirements", "Requirements"),
+    "price_benchmark": ("canvas.price_benchmark", "Price Benchmarks"),
+    "tender_detail": ("canvas.tender_detail", "Tender Detail"),
+}
+
+
+def _reopen_artifact_button(artifact: dict, language: str):
+    """Render a button that re-opens the artifact's canvas panel.
+
+    Persisted assistant messages now include their `artifact` reference, so
+    when the user reloads or revisits a past conversation we can offer them
+    a way to bring the side panel back. Previously the canvas was only
+    reachable during the original SSE stream — once dismissed, it was gone.
+    """
+    art_type = artifact.get("type") or ""
+    art_id = artifact.get("id") or ""
+    if not art_type:
+        return None
+
+    key, fallback = _ARTIFACT_LABELS.get(art_type, ("canvas.artifact", art_type.replace("_", " ").title()))
+    label = t(key, language) or fallback
+    button_label = (t("chat.reopen_artifact", language) or "Reopen") + " " + label
+
+    if art_type == "tender_detail" and artifact.get("tender_id"):
+        onclick = f"showTenderDetail({_json.dumps(int(artifact['tender_id']))})"
+    elif art_id:
+        onclick = (
+            f"openArtifact({_json.dumps(art_type)},"
+            f"{_json.dumps(art_id)},"
+            f"{_json.dumps(label)})"
+        )
+    else:
+        return None
+
+    return Button(
+        _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>'),
+        Span(button_label, cls="action-btn-label"),
+        type="button",
+        cls="msg-action-btn reopen-artifact-btn",
+        onclick=onclick,
+        title=button_label,
+    )
 
 
 def message_component(msg, language="en"):
@@ -25,10 +79,10 @@ def message_component(msg, language="en"):
     if tenders:
         tender_section.append(tender_cards_component(tenders, language=language))
 
-    # Action buttons for AI messages (copy content, copy link)
+    # Action buttons for AI messages (copy content, copy link, reopen artifact)
     action_bar = None
     if not is_user:
-        action_bar = Div(
+        action_buttons = [
             Button(
                 _raw(_ICON_COPY),
                 Span(t("chat.copy", language), cls="action-btn-label"),
@@ -43,8 +97,13 @@ def message_component(msg, language="en"):
                 onclick="copyConversationLink()",
                 title=t("chat.copy_link", language),
             ),
-            cls="message-actions",
-        )
+        ]
+        artifact = msg.get("artifact")
+        if isinstance(artifact, dict):
+            reopen_btn = _reopen_artifact_button(artifact, language)
+            if reopen_btn is not None:
+                action_buttons.append(reopen_btn)
+        action_bar = Div(*action_buttons, cls="message-actions")
 
     return Div(
         Div(

@@ -1113,13 +1113,22 @@ class TendlyChatService:
             # Emit response text
             yield _sse_event("text", {"content": response_text})
 
-            # Store assistant message
+            # Store assistant message — also include the artifact reference
+            # (type + id + tender_id) so when the page is reloaded later, we
+            # can render a "Reopen ..." button that brings the canvas back.
+            # Without this the artifact is unreachable after navigation.
             assistant_msg = {
                 "role": "assistant",
                 "content": response_text,
                 "tenders": tool_result.tenders,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
+            if tool_result.artifact_type and tool_result.artifact_id:
+                assistant_msg["artifact"] = {
+                    "type": tool_result.artifact_type,
+                    "id": tool_result.artifact_id,
+                    "tender_id": (tool_result.artifact_data or {}).get("id") if tool_result.artifact_data else None,
+                }
             self._append_message(conversation_id, assistant_msg)
 
             yield _sse_event("done", {})
@@ -1532,13 +1541,25 @@ class TendlyChatService:
             sys_prompt = sys_prompt + (
                 f"\n\nIMPORTANT: A specialised '{artifact_type}' tool has "
                 "already run successfully and the full result is rendered in "
-                "the canvas panel on the right. You MUST NOT say you cannot "
-                "perform this task or that you lack this capability — the "
-                "tool already did it. Acknowledge what was produced in 2-4 "
-                "sentences (using the artifact summary/data below if helpful) "
-                "and direct the user to the canvas panel for the complete "
-                "output. End with a 'Try also:' section with 2-3 contextually "
-                "relevant follow-ups."
+                "the canvas panel on the right (which has Copy and Download "
+                "buttons). You MUST NOT say you cannot perform this task or "
+                "that you lack this capability — the tool already did it.\n\n"
+                "**Reply structure (consistent across all languages):**\n"
+                "1) ONE short opening sentence confirming what was produced "
+                "and naming it (use the artifact summary below).\n"
+                "2) A brief inline preview — for an RFP/document draft this "
+                "means the title plus 3-6 of the most important bullet points "
+                "(scope highlights, top evaluation criteria, key qualification "
+                "requirements). Use compact bullet lists, not full prose. The "
+                "user must be able to see the substance directly in chat, not "
+                "just a pointer to the canvas.\n"
+                "3) ONE short line telling them the full document is open in "
+                "the canvas with Copy and Download buttons.\n"
+                "4) A 'Try also:' section with 2-3 contextually relevant "
+                "follow-ups (e.g. 'tighten the scope', 'add an SLA clause', "
+                "'benchmark this budget').\n\n"
+                "**This format is identical regardless of UI language — only "
+                "the words are translated.** Keep total length 120-200 words."
             )
         elif gathering_state:
             # Multi-turn plan creation: agent is in info-gathering mode.
@@ -1655,7 +1676,30 @@ class TendlyChatService:
                                      f"cpv={query_info.get('cpv_divisions', [])}, "
                                      f"keywords={query_info.get('keywords', [])}")
 
-        recent = conversation_history[-7:-1]
+        # Pull out any system primer messages from the conversation history
+        # and inject them in full into sys_prompt. We do this because:
+        #   1) System primers contain the linked plan context (when the user
+        #      clicked "Ask AI" on a procurement plan), which must remain in
+        #      view for the entire conversation, not just the first 6 turns.
+        #   2) The recent-history block truncates each message to 300 chars,
+        #      which would drop most of a plan primer (criteria, requirements).
+        system_primers = [
+            m.get("content", "") for m in conversation_history
+            if m.get("role") == "system" and m.get("content")
+        ]
+        if system_primers:
+            sys_prompt = (
+                sys_prompt
+                + "\n\n=== ACTIVE PLAN CONTEXT (always honor this) ===\n"
+                + "\n\n".join(system_primers)
+            )
+
+        # Build the rolling recent-history block from user/assistant turns
+        # only. System primers were already injected above.
+        recent = [
+            m for m in conversation_history[-7:-1]
+            if m.get("role") in ("user", "assistant")
+        ]
         if recent:
             history_lines = []
             for msg in recent:
