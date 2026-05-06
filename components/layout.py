@@ -71,8 +71,12 @@ def _page_shell(title_key, language, auth, body_content, active_page="dashboard"
     )
 
 
-def buyer_page(content, language="en", auth=None, active_page="dashboard", chat_service=None, title_key="app.title"):
-    """Render a standard buyer page (dashboard, procurements, documents, etc.)."""
+def buyer_page(content, language="en", auth=None, active_page="dashboard", chat_service=None, title_key="app.title", include_canvas=False):
+    """Render a standard buyer page (dashboard, procurements, documents, etc.).
+
+    Set include_canvas=True to add the right-side slide-in canvas panel
+    (used e.g. on the procurement detail page for AI Review results).
+    """
     main_area = Div(content, cls="main-content")
     return _page_shell(
         title_key=title_key,
@@ -81,6 +85,7 @@ def buyer_page(content, language="en", auth=None, active_page="dashboard", chat_
         body_content=main_area,
         active_page=active_page,
         chat_service=chat_service,
+        include_canvas=include_canvas,
     )
 
 

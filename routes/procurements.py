@@ -101,7 +101,7 @@ def register_procurement_routes(rt, chat_service):
         steps = get_steps(plan_id)
         docs = list_documents(procurement_plan_id=plan_id)
         content = procurement_detail_page(plan=plan, steps=steps, documents=docs, language=language)
-        return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
+        return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title", include_canvas=True)
 
     @rt("/procurements/{plan_id}/edit")
     @require_auth
@@ -274,15 +274,45 @@ def register_procurement_routes(rt, chat_service):
 
     # --- AI Document Review ---
 
+    def _render_review_panel(plan_id: str, language: str, analysis: dict, doc_count: int, reviewed_display: str):
+        """Build the side-panel HTML for a review result."""
+        from fasthtml.common import Div, Span, Button, NotStr
+        panel = ai_review_panel(analysis, language)
+        meta = Div(
+            Span(
+                f"{t('review.reviewed_at', language)}: {reviewed_display}",
+                style="font-size:11px;color:#9ca3af;",
+            ),
+            Span(" · ", style="font-size:11px;color:#d1d5db;"),
+            Span(
+                f"{doc_count} {t('review.documents_analyzed', language)}",
+                style="font-size:11px;color:#9ca3af;",
+            ),
+            style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:0 4px;",
+        )
+        rerun = Button(
+            NotStr('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'),
+            f" {t('review.rerun_review', language)}",
+            type="button",
+            onclick=f"runAiReview('{plan_id}', this)",
+            cls="btn-secondary",
+            style="font-size:12px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px;",
+        )
+        footer = Div(
+            meta, rerun,
+            style="display:flex;align-items:center;justify-content:space-between;margin:14px 4px 4px;padding-top:12px;border-top:1px solid #f3f4f6;flex-wrap:wrap;gap:8px;",
+        )
+        return Div(panel, footer, cls="ai-review-canvas", style="padding:18px 16px 24px;")
+
     @rt("/api/procurements/{plan_id}/ai-review")
     @require_auth
     async def post(request, plan_id: str):
-        """Run AI document review and return results as HTML fragment."""
+        """Run AI document review and return results as HTML fragment for the side canvas."""
         auth = get_auth_from_request(request)
         if not user_owns_plan(plan_id, auth.get("email") if auth else None):
             return forbidden_response(request)
         from services.document_review_service import DocumentReviewService
-        from fasthtml.common import Div, P, Span, Button, NotStr
+        from fasthtml.common import Div, P
 
         language = get_language_from_request(request)
         reviewer = DocumentReviewService()
@@ -290,53 +320,45 @@ def register_procurement_routes(rt, chat_service):
 
         if not result.get("success"):
             error = result.get("error", "")
-            if error == "no_documents":
-                msg = t("review.no_documents", language)
-            elif error == "no_content":
+            if error in ("no_documents", "no_content"):
                 msg = t("review.no_documents", language)
             else:
                 msg = error or t("chat.error", language)
             error_html = Div(
-                P(msg, style="font-size:13px;color:#dc2626;text-align:center;padding:16px 0;"),
-                id="ai-review-results",
+                P(msg, style="font-size:13px;color:#dc2626;text-align:center;padding:24px 16px;"),
+                cls="ai-review-canvas",
             )
             return HTMLResponse(to_xml(error_html))
 
         analysis = result.get("analysis", {})
         doc_count = result.get("document_count", 0)
-
-        panel = ai_review_panel(analysis, language)
-
-        # Metadata footer with re-run button
         from datetime import datetime, timezone
         reviewed_display = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        return HTMLResponse(to_xml(_render_review_panel(plan_id, language, analysis, doc_count, reviewed_display)))
 
-        from core.utils import _raw
+    @rt("/api/procurements/{plan_id}/ai-review")
+    @require_auth
+    def get(request, plan_id: str):
+        """Return the most recent stored AI review for the side canvas (no re-run)."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
+        from fasthtml.common import Div, P
 
-        footer = Div(
-            Div(
-                Span(
-                    f"{t('review.reviewed_at', language)}: {reviewed_display}",
-                    style="font-size:11px;color:#9ca3af;",
+        language = get_language_from_request(request)
+        plan = get_plan(plan_id)
+        existing = (plan.get("metadata_json") or {}).get("ai_review") if plan else None
+        if not existing:
+            empty = Div(
+                P(
+                    t("review.no_documents", language),
+                    style="font-size:13px;color:#6b7280;text-align:center;padding:24px 16px;",
                 ),
-                Span(" | ", style="font-size:11px;color:#d1d5db;"),
-                Span(
-                    f"{doc_count} {t('review.documents_analyzed', language)}",
-                    style="font-size:11px;color:#9ca3af;",
-                ),
-                style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;",
-            ),
-            Button(
-                NotStr('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'),
-                f" {t('review.rerun_review', language)}",
-                hx_post=f"/api/procurements/{plan_id}/ai-review",
-                hx_target="#ai-review-results",
-                hx_indicator="#review-loading",
-                cls="btn-secondary",
-                style="font-size:12px;padding:6px 12px;",
-            ),
-            style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #f3f4f6;flex-wrap:wrap;gap:8px;",
-        )
-
-        result_html = Div(panel, footer, id="ai-review-results")
-        return HTMLResponse(to_xml(result_html))
+                cls="ai-review-canvas",
+            )
+            return HTMLResponse(to_xml(empty))
+        analysis = existing.get("results", {}) or {}
+        doc_count = existing.get("document_count", 0)
+        reviewed_at = existing.get("reviewed_at", "")
+        reviewed_display = reviewed_at[:16].replace("T", " ") if reviewed_at else ""
+        return HTMLResponse(to_xml(_render_review_panel(plan_id, language, analysis, doc_count, reviewed_display)))

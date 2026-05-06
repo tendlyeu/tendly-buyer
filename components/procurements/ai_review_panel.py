@@ -259,63 +259,64 @@ def ai_review_section(plan, language="en"):
         style="display:none;text-align:center;padding:20px;",
     )
 
+    # The result panel always renders in the right-side canvas (slide-in
+    # navbar). The page itself only shows the launcher button + a small
+    # status line if a review already exists.
     if existing_review:
-        results = existing_review.get("results", {})
         reviewed_at = existing_review.get("reviewed_at", "")
         doc_count = existing_review.get("document_count", 0)
-
-        # Format reviewed_at for display
         reviewed_display = reviewed_at[:16].replace("T", " ") if reviewed_at else ""
 
-        panel = ai_review_panel(results, language)
-
-        footer = Div(
-            Div(
-                Span(
-                    f"{t('review.reviewed_at', language)}: {reviewed_display}",
-                    style="font-size:11px;color:#9ca3af;",
-                ),
-                Span(" | ", style="font-size:11px;color:#d1d5db;"),
-                Span(
-                    f"{doc_count} {t('review.documents_analyzed', language)}",
-                    style="font-size:11px;color:#9ca3af;",
-                ),
-                style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;",
+        status = Div(
+            Span(
+                f"{t('review.reviewed_at', language)}: {reviewed_display}",
+                style="font-size:12px;color:#6b7280;",
             ),
-            Button(
-                _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'),
-                f" {t('review.rerun_review', language)}",
-                hx_post=f"/api/procurements/{plan_id}/ai-review",
-                hx_target="#ai-review-results",
-                hx_indicator="#review-loading",
-                cls="btn-secondary",
-                style="font-size:12px;padding:6px 12px;",
+            Span(" · ", style="font-size:12px;color:#d1d5db;"),
+            Span(
+                f"{doc_count} {t('review.documents_analyzed', language)}",
+                style="font-size:12px;color:#6b7280;",
             ),
-            style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #f3f4f6;flex-wrap:wrap;gap:8px;",
+            style="margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;",
         )
 
-        results_div = Div(panel, footer, id="ai-review-results")
-    else:
-        results_div = Div(id="ai-review-results")
-
-    # Build the run button (shown when no review exists, hidden when results present)
-    if not existing_review:
         run_button = Button(
-            _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.57-3.25 3.92A2 2 0 0011 12v1"/><circle cx="12" cy="17" r="1"/><circle cx="12" cy="12" r="10"/></svg>'),
-            f" {t('review.run_review', language)}",
-            hx_post=f"/api/procurements/{plan_id}/ai-review",
-            hx_target="#ai-review-results",
-            hx_indicator="#review-loading",
+            _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>'),
+            f" {t('review.rerun_review', language)}",
+            type="button",
+            onclick=f"runAiReview('{plan_id}', this)",
+            cls="btn-secondary",
+            style="font-size:12px;padding:6px 12px;display:inline-flex;align-items:center;gap:6px;",
+        )
+
+        view_button = Button(
+            f"{t('review.view_review', language)}",
+            type="button",
+            onclick=f"openAiReview('{plan_id}', this)",
             cls="btn-primary",
             style="font-size:13px;padding:8px 16px;",
         )
-    else:
-        run_button = ""
+
+        return Div(
+            header,
+            Div(view_button, run_button, style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"),
+            loading,
+            status,
+            cls="dashboard-section",
+        )
+
+    run_button = Button(
+        _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.57-3.25 3.92A2 2 0 0011 12v1"/><circle cx="12" cy="17" r="1"/><circle cx="12" cy="12" r="10"/></svg>'),
+        f" {t('review.run_review', language)}",
+        type="button",
+        onclick=f"runAiReview('{plan_id}', this)",
+        cls="btn-primary",
+        style="font-size:13px;padding:8px 16px;display:inline-flex;align-items:center;gap:6px;",
+    )
 
     return Div(
         header,
         run_button,
         loading,
-        results_div,
         cls="dashboard-section",
     )

@@ -534,6 +534,60 @@ window.closeDetailPanel = function() {
     closeCanvas();
 };
 
+// --- AI Document Review (procurement detail page) ---
+// Runs (or re-runs) the AI review for a plan and opens the result in the
+// right-side canvas panel. Disables the trigger button while running and
+// shows a spinner indicator. The server returns an HTML fragment.
+window.runAiReview = function(planId, btn) {
+    var title = _t('review.title', 'AI Document Review');
+    var loadingTxt = _t('review.analyzing', 'Analyzing documents…');
+    // Open canvas immediately with a loading state so the user sees feedback.
+    var loadingHtml = '<div style="padding:32px 20px;text-align:center;color:#6b7280;">' +
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" style="animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>' +
+        '<div style="margin-top:10px;font-size:13px;">' + loadingTxt + '</div></div>';
+    openCanvas(title, loadingHtml);
+
+    var prevDisabled;
+    if (btn) {
+        prevDisabled = btn.disabled;
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'wait';
+    }
+    fetch('/api/procurements/' + encodeURIComponent(planId) + '/ai-review', {
+        method: 'POST',
+        headers: {'Accept': 'text/html'},
+    })
+        .then(function(resp) { return resp.text(); })
+        .then(function(html) {
+            openCanvas(title, html);
+        })
+        .catch(function(e) {
+            console.error('AI review failed', e);
+            openCanvas(title, '<div style="padding:24px;color:#dc2626;font-size:13px;">' +
+                _t('chat.error', 'Something went wrong.') + '</div>');
+        })
+        .finally(function() {
+            if (btn) {
+                btn.disabled = prevDisabled || false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+            }
+        });
+};
+
+// View the existing (cached) AI review without re-running. Used when a
+// review already exists and the user clicks "View review".
+window.openAiReview = function(planId, btn) {
+    var title = _t('review.title', 'AI Document Review');
+    fetch('/api/procurements/' + encodeURIComponent(planId) + '/ai-review', {
+        headers: {'Accept': 'text/html'},
+    })
+        .then(function(resp) { return resp.text(); })
+        .then(function(html) { openCanvas(title, html); })
+        .catch(function(e) { console.error('AI review fetch failed', e); });
+};
+
 window.toggleReqItems = function(sectionId) {
     var hidden = document.getElementById(sectionId + '-hidden');
     var btn = document.getElementById(sectionId + '-btn');

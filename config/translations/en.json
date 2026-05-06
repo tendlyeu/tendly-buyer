@@ -276,6 +276,7 @@
     "title": "AI Document Review",
     "run_review": "Run AI Review",
     "rerun_review": "Re-run Review",
+    "view_review": "View Review",
     "analyzing": "Analyzing documents...",
     "quality_score": "Quality",
     "completeness": "Completeness",

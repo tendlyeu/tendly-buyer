@@ -101,6 +101,25 @@ class CreatePlanTool(Tool):
             or _parse_value(params.get("min_value"))
         )
 
+        # Defensive guard: even if the analyzer mistakenly set plan_ready=true,
+        # refuse to persist a plan with junk data. Bounce back to gathering
+        # mode so the user can correct the missing pieces.
+        if not title or not estimated_value or estimated_value <= 0:
+            missing = "title" if not title else "estimated_value"
+            gathered = {k: v for k, v in plan_draft.items() if v not in (None, "", [], {}, 0)}
+            return ToolResult(
+                summary=json.dumps({
+                    "phase": "gathering",
+                    "missing": missing,
+                    "question": (
+                        "Could you confirm the title for this procurement?"
+                        if missing == "title"
+                        else "What's the estimated budget in EUR (ex-VAT)?"
+                    ),
+                    "gathered": gathered,
+                }),
+            )
+
         # If the LLM gave structured criteria/requirements directly in
         # plan_draft, use them; otherwise fall back to the RFP generator
         # to flesh them out.
@@ -155,6 +174,14 @@ class CreatePlanTool(Tool):
             metadata["evaluation_criteria"] = eval_criteria
         if requirements:
             metadata["requirements"] = requirements
+        # Persist the richer fields the LLM gathered so the detail page +
+        # document-generation flow can use them later.
+        for k in ("duration_months", "submission_deadline_days",
+                  "contract_start", "documents_user_has",
+                  "documents_to_generate"):
+            v = plan_draft.get(k)
+            if v not in (None, "", [], {}):
+                metadata[k] = v
 
         try:
             plan = create_plan(
@@ -181,6 +208,17 @@ class CreatePlanTool(Tool):
         except Exception:
             ev = None
 
+        # Standard RHS-aligned doc set the buyer needs before publishing.
+        # The chat will offer to generate any the user doesn't already have.
+        required_docs = [
+            "technical_specification",
+            "draft_contract",
+            "evaluation_methodology",
+            "espd",
+        ]
+        has = plan_draft.get("documents_user_has") or []
+        to_gen = [d for d in required_docs if d not in has]
+
         return ToolResult(
             artifact_type="create_plan",
             artifact_id=f"plan_{plan_id}",
@@ -191,12 +229,20 @@ class CreatePlanTool(Tool):
                 "category": plan.get("category"),
                 "estimated_value": ev,
                 "cpv_code": plan.get("cpv_code"),
+                "duration_months": metadata.get("duration_months"),
+                "submission_deadline_days": metadata.get("submission_deadline_days"),
+                "procurement_method": plan_draft.get("procurement_method", "open"),
                 "evaluation_criteria": metadata.get("evaluation_criteria", []),
                 "requirements": metadata.get("requirements", []),
+                "required_documents": required_docs,
+                "documents_user_has": has,
+                "documents_to_generate": to_gen,
             },
             summary=(
                 f"Created procurement plan '{plan.get('title')}' "
-                f"(category: {plan.get('category')}, value: {ev} EUR). "
+                f"(category: {plan.get('category')}, value: {ev} EUR, "
+                f"duration: {metadata.get('duration_months') or '?'} months). "
+                f"Documents still needed: {', '.join(to_gen) or 'none'}. "
                 f"Open it at {plan_url}."
             ),
         )

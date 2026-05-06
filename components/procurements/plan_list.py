@@ -89,14 +89,15 @@ _DYNAMIC_FORM_JS = Script("""
         var textInput = makeEl('input', {type:'text', name:'req_text_'+idx, placeholder:phText, class:'form-input', style:'flex:3;'});
 
         var typeSelect = makeEl('select', {name:'req_type_'+idx, class:'form-select', style:'flex:0 0 130px;'}, [
-            makeEl('option', {value:'mandatory'}, [lblMandatory]),
-            makeEl('option', {value:'preferred'}, [lblPreferred])
+            makeEl('option', {value:'qualification'}, ['Qualification']),
+            makeEl('option', {value:'compliance'}, ['Compliance']),
+            makeEl('option', {value:'service_level'}, ['Service level']),
+            makeEl('option', {value:'experience'}, ['Experience'])
         ]);
 
         var prioSelect = makeEl('select', {name:'req_priority_'+idx, class:'form-select', style:'flex:0 0 110px;'}, [
-            makeEl('option', {value:'high'}, ['High']),
-            makeEl('option', {value:'medium'}, ['Medium']),
-            makeEl('option', {value:'low'}, ['Low'])
+            makeEl('option', {value:'must'}, [lblMandatory || 'Must']),
+            makeEl('option', {value:'should'}, [lblPreferred || 'Should'])
         ]);
 
         var fields = makeEl('div', {class:'dynamic-row-fields'}, [textInput, typeSelect, prioSelect]);
@@ -117,7 +118,9 @@ _DYNAMIC_FORM_JS = Script("""
             var weight = inputs[1] ? parseFloat(inputs[1].value) || 0 : 0;
             var desc = inputs[2] ? inputs[2].value.trim() : '';
             if (name) {
-                criteria.push({criterion_name: name, weight_percentage: weight, description: desc});
+                // Field names MUST match what the renderer reads in
+                // _criteria_and_requirements_section (plan_list.py).
+                criteria.push({name: name, weight: weight, description: desc});
             }
         });
         var hidden = document.getElementById('evaluation_criteria_json');
@@ -131,14 +134,56 @@ _DYNAMIC_FORM_JS = Script("""
             var input = row.querySelector('input');
             var selects = row.querySelectorAll('select');
             var text = input ? input.value.trim() : '';
-            var rtype = selects[0] ? selects[0].value : 'mandatory';
-            var priority = selects[1] ? selects[1].value : 'medium';
+            var rtype = selects[0] ? selects[0].value : 'qualification';
+            var priority = selects[1] ? selects[1].value : 'must';
             if (text) {
-                reqs.push({requirement_text: text, requirement_type: rtype, priority: priority});
+                // Field names MUST match the renderer
+                reqs.push({text: text, type: rtype, priority: priority});
             }
         });
         var hidden = document.getElementById('requirements_json');
         if (hidden) hidden.value = JSON.stringify(reqs);
+    }
+
+    // Pre-populate visible rows from the hidden JSON inputs (used by the
+    // edit form, which loads with existing criteria/requirements).
+    function hydrateFromHidden() {
+        try {
+            var critHidden = document.getElementById('evaluation_criteria_json');
+            if (critHidden && critHidden.value && critHidden.value !== '[]') {
+                var crit = JSON.parse(critHidden.value);
+                crit.forEach(function(c) {
+                    window.addCriterionRow();
+                    var rows = document.querySelectorAll('#criteria-rows .dynamic-row');
+                    var row = rows[rows.length - 1];
+                    var inputs = row.querySelectorAll('input');
+                    if (inputs[0]) inputs[0].value = c.name || c.criterion_name || '';
+                    if (inputs[1]) inputs[1].value = c.weight || c.weight_percentage || '';
+                    if (inputs[2]) inputs[2].value = c.description || '';
+                });
+                serializeCriteria();
+            }
+            var reqHidden = document.getElementById('requirements_json');
+            if (reqHidden && reqHidden.value && reqHidden.value !== '[]') {
+                var reqs = JSON.parse(reqHidden.value);
+                reqs.forEach(function(r) {
+                    window.addRequirementRow();
+                    var rows = document.querySelectorAll('#requirements-rows .dynamic-row');
+                    var row = rows[rows.length - 1];
+                    var input = row.querySelector('input');
+                    var selects = row.querySelectorAll('select');
+                    if (input) input.value = r.text || r.requirement_text || '';
+                    if (selects[0]) selects[0].value = r.type || r.requirement_type || 'qualification';
+                    if (selects[1]) selects[1].value = r.priority || 'must';
+                });
+                serializeRequirements();
+            }
+        } catch (e) { console.error('hydrateFromHidden failed', e); }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hydrateFromHidden);
+    } else {
+        hydrateFromHidden();
     }
 
     // Re-serialize on form submit

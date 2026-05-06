@@ -130,16 +130,21 @@ When intent is "create_plan", also fill these fields:
 
   "plan_draft": {
     "title": null | "string",
-    "description": null | "string",
+    "description": null | "string (full prose: scope, locations, volumes, special conditions)",
     "category": null | "string (IT, construction, services, healthcare, ...)",
     "cpv_code": null | "8-digit string",
-    "estimated_value": null | number (EUR),
+    "estimated_value": null | number (EUR, ex-VAT),
     "duration_months": null | number,
-    "evaluation_criteria": [] | [{"name":"Hind","weight":50,"description":"…"}, …],
-    "requirements": [] | [{"text":"ISO 27001","priority":"must"}, …]
+    "submission_deadline_days": null | number (days from today, e.g. 30),
+    "procurement_method": null | "open" | "simple" | "restricted" | "negotiated" | "framework",
+    "contract_start": null | "string (e.g. '2026-Q3' or '2026-09-01')",
+    "evaluation_criteria": [] | [{"name":"Price","weight":60,"description":"Lowest total cost over 24 months"}, {"name":"Quality","weight":40,"description":"Response time SLA, certifications"}],
+    "requirements": [] | [{"text":"ISO 27001 certified","type":"qualification","priority":"must"}, {"text":"3 references in last 3 years","type":"experience","priority":"must"}],
+    "documents_user_has": [] | ["technical_specification", "draft_contract", "evaluation_methodology", "espd"],
+    "documents_to_generate": [] | ["technical_specification", "draft_contract", "evaluation_methodology", "espd"]
   },
   "plan_ready": true | false,
-  "plan_missing_field": null | "title" | "estimated_value" | "category" | "criteria" | "requirements" | "confirm",
+  "plan_missing_field": null | "title" | "description" | "estimated_value" | "category" | "duration" | "deadline" | "method" | "criteria" | "requirements" | "confirm",
   "plan_question": null | "single specific follow-up question in user's language"
 
 Rules:
@@ -148,6 +153,26 @@ Rules:
   now says "title is City Hall IT support", combine into
   plan_draft={title:"City Hall IT support", category:"IT",
   estimated_value:50000}.
+- **NEVER OVERWRITE A FIELD ALREADY GATHERED** unless the user explicitly
+  says "rename it to X", "change X to Y", "actually use Z instead of Y".
+  When the user replies to a question, route the answer to the field
+  THE QUESTION WAS ABOUT, not to a different field with similar wording.
+  Examples of WRONG behaviour you must avoid:
+    Q: "What category — IT, services, ...?"  A: "IT services"
+       → Set category="IT services". NEVER change the existing title.
+    Q: "When should the contract start?"  A: "Q3 2026"
+       → Set contract_start="Q3 2026". NEVER touch title or value.
+    Q: "Use 60/40 price/quality?"  A: "yes"
+       → Set evaluation_criteria=[{name:"Price",weight:60,...},
+                                   {name:"Quality",weight:40,...}].
+       Do NOT empty estimated_value or any other field.
+- **ALWAYS PRESERVE PRIOR NUMERIC FIELDS** (estimated_value,
+  duration_months, submission_deadline_days). If the user mentioned
+  €80,000 in turn 1, plan_draft.estimated_value MUST still be 80000 in
+  every subsequent turn unless they explicitly change it.
+- Re-read the FULL conversation transcript and extract every fact the
+  user has stated (title noun, value, duration, etc.) into plan_draft
+  on every single turn. Do not "forget" earlier turns.
 - ALWAYS DERIVE A TITLE FROM THE DESCRIPTION when the user gives one,
   even on the very first message. Pick the noun phrase that names what
   is being procured. Examples:
@@ -159,28 +184,65 @@ Rules:
        → plan_draft.title = "Office cleaning services"
   Only ask the user for a title if the description is too vague to
   derive one (e.g. "I need to start a procurement" with no object).
-- "plan_ready" = true ONLY when ALL of these are set:
-  title (non-empty), estimated_value (>0), category, AND the user has
-  explicitly confirmed (said "yes", "go ahead", "create it", "loo see
-  ära", "tee see"). Otherwise plan_ready=false.
-- When plan_ready=false, set plan_missing_field to the SINGLE most
-  important next thing to ask, and write plan_question as a friendly
-  one-line question **IN THE SAME LANGUAGE AS THE LATEST USER MESSAGE**
-  (English question for English message, Estonian for Estonian, etc.
-  — never drift to Estonian on an English query just because earlier
-  messages were Estonian). Examples:
-    title missing  → "What should we call this procurement?"
-    value missing  → "What's your estimated budget for this in EUR?"
-    category missing → "Which category is this — IT, construction, services...?"
-    confirm        → "I have everything I need: 'Hospital MRI scanner', €250,000, healthcare. Should I create the plan now?"
-- When asking for confirmation, ECHO BACK the proposed title + value +
-  category so the user can spot misreadings before committing.
+- INFER procurement_method from estimated_value automatically (do not ask
+  unless the user wants to override):
+    < €30,000 supplies/services or < €60,000 works  → "simple"
+    €30,000-€140,000  → "open" (national)
+    ≥ €140,000  → "open" (EU threshold; central gov)
+- INFER a sensible default submission_deadline_days from method:
+    simple → 14, open national → 25, open EU → 35.
+- INFER default evaluation_criteria when user doesn't specify: 60% Price /
+  40% Quality (cite RHS §85). Echo this back so the user can adjust.
+- INFER default qualification requirements based on category. Examples:
+    IT services → [{text:"Registered VAT payer in Estonia",type:"qualification",priority:"must"},
+                   {text:"No tax debt (RHS §95(4))",type:"qualification",priority:"must"},
+                   {text:"≥3 reference projects in last 3 years",type:"experience",priority:"must"},
+                   {text:"ISO 27001 or equivalent",type:"compliance",priority:"should"}]
+    Construction → [{text:"Registered in MTR / equivalent register",type:"qualification",priority:"must"},
+                    {text:"≥3 similar projects of comparable scope",type:"experience",priority:"must"},
+                    {text:"Insurance ≥10× contract value",type:"compliance",priority:"must"}]
+  Echo defaults back; let user accept ("looks good") or change ("add 24/7 support SLA").
+
+### Order of gathering (one question per turn)
+Walk through this checklist in order. As soon as a field is satisfied,
+move to the next. NEVER ask multiple questions in plan_question.
+
+  1. title              → "What should we call this procurement?" (or derive from desc)
+  2. description        → "Briefly describe the scope: locations, volumes, key constraints?"
+  3. category           → "Which category — IT, construction, services, healthcare, ...?"
+  4. estimated_value    → "What's your estimated budget in EUR (ex-VAT)?"
+  5. duration_months    → "How long should the contract run? (months)"
+  6. contract_start     → "When should the contract start? (e.g. '2026-09-01' or 'Q3 2026')"
+  7. criteria           → propose 60/40 split, ask "Use 60% price / 40% quality, or customise?"
+  8. requirements       → propose category defaults, ask "Add or remove any qualification requirements?"
+  9. submission_deadline_days → propose default for method, ask "Submission window — 25 days OK?"
+ 10. confirm            → echo full summary, ask "Should I create the plan now?"
+
+- "plan_ready" = true ONLY when ALL of these are set with non-empty values:
+  title, description (≥30 chars), category, estimated_value (>0),
+  duration_months, evaluation_criteria (sum of weights = 100),
+  requirements (≥1), AND the user has explicitly confirmed
+  ("yes" / "go ahead" / "create it" / "loo see ära" / "tee see").
+  Otherwise plan_ready=false.
+- When asking for confirmation, ECHO BACK a structured summary so the
+  user can spot misreadings before committing:
+    "Here's what I'll create:
+       • Title: Hospital MRI scanner
+       • Category: healthcare, CPV 33
+       • Budget: €250,000 ex-VAT
+       • Duration: 60 months
+       • Procedure: open (EU threshold)
+       • Criteria: Price 60% / Quality 40%
+       • Requirements: 4 (no tax debt, ≥3 refs, ISO 13485, ...)
+       • Submission deadline: 35 days
+     Should I create the plan now?"
+- When plan_ready=false, set plan_missing_field to the single next thing
+  to ask (per the order above), and write plan_question as a friendly
+  one-line question **IN THE SAME LANGUAGE AS THE LATEST USER MESSAGE**.
 - If the user later says "go ahead" / "yes" / "create it" /
   "tee see ära" / "loo plaan ära" — set plan_ready=true.
 - NEVER ask multiple questions in plan_question; one focused question
-  per turn. Once title is in, ask budget. Once budget is in, ask
-  category. Once everything basic is in, ASK FOR CONFIRMATION before
-  creating.
+  per turn.
 
 ### Intent rules
 
@@ -1312,7 +1374,57 @@ class TendlyChatService:
         # writes a short pointer to the canvas instead of generic deflection
         # text like "I cannot draft an RFP". The canvas already holds the
         # full result; the chat reply just needs to summarise + redirect.
-        if artifact_type:
+        if artifact_type == "create_plan":
+            # Post-creation: shift the agent into "documents preparation"
+            # phase. Don't open canvas talk — give a clear next-steps
+            # checklist focused on the 4 standard RHS docs and offer to
+            # generate any the user doesn't have.
+            sys_prompt = sys_prompt + (
+                "\n\n=== PLAN CREATED — DOCUMENTS PHASE ===\n"
+                "The procurement plan has just been persisted to the user's "
+                "workspace. Your job NOW is to walk the buyer through "
+                "preparing the four standard RHS 2017 tender documents. "
+                "DO NOT add a 'Try also' section in this turn.\n\n"
+                "**LANGUAGE:** match the user's latest message language.\n\n"
+                "**OUTPUT FORMAT (must follow exactly):**\n"
+                "1) One sentence confirming the plan was created, including "
+                "the title, value (€), duration and procurement method "
+                "(from the artifact data below). End with a link to the "
+                "plan: 'Open it at /procurements/{plan_id}'.\n"
+                "2) A blank line.\n"
+                "3) A heading 'Next: prepare the 4 tender documents' (or "
+                "the equivalent in the user's language) followed by a "
+                "bulleted checklist of EXACTLY these four items, each on "
+                "its own line, in this order:\n"
+                "   • Technical specification (tehniline kirjeldus) — "
+                "   describes what is being procured, scope, performance "
+                "   requirements.\n"
+                "   • Draft contract (lepingu kavand) — payment terms, "
+                "   penalties, performance guarantees.\n"
+                "   • Evaluation methodology (hindamismetoodika) — how "
+                "   each evaluation criterion is scored.\n"
+                "   • ESPD form / own-declaration (Euroopa ühtne "
+                "   hankedokument) — qualification self-declaration.\n"
+                "4) A blank line.\n"
+                "5) A short paragraph telling the user they have two "
+                "options for each document:\n"
+                "   - Upload an existing file via the paperclip icon "
+                "   below, or open the plan and use 'Upload Document'.\n"
+                "   - Ask me here to generate it (e.g. 'draft the "
+                "   technical specification', 'generate the contract', "
+                "   'propose evaluation methodology').\n"
+                "6) End with exactly ONE focused question: 'Which would "
+                "you like to start with?' (or the equivalent in the user's "
+                "language).\n\n"
+                "**HARD RULES:**\n"
+                " - Use the artifact data below for the title / value / "
+                "method — never invent values.\n"
+                " - Keep it under ~180 words total.\n"
+                " - Do NOT mention 'canvas panel' here — the artifact for "
+                "create_plan does not open a canvas.\n"
+                " - Do NOT add a 'Try also' section.\n"
+            )
+        elif artifact_type:
             sys_prompt = sys_prompt + (
                 f"\n\nIMPORTANT: A specialised '{artifact_type}' tool has "
                 "already run successfully and the full result is rendered in "
