@@ -1,5 +1,7 @@
 -- Tendly schema tables
--- Run against: postgresql://finespresso:***@72.62.114.124:5432/finespresso_db
+-- Run against the buyer DB (TENDLY_DB_URL).
+
+CREATE SCHEMA IF NOT EXISTS tendly;
 
 -- Users with buyer/seller role
 CREATE TABLE IF NOT EXISTS tendly.users (
