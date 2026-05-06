@@ -203,6 +203,52 @@ Rules:
                     {text:"Insurance ≥10× contract value",type:"compliance",priority:"must"}]
   Echo defaults back; let user accept ("looks good") or change ("add 24/7 support SLA").
 
+### Stay in create_plan once the gathering loop has started
+
+If the conversation transcript shows the assistant has been asking
+follow-up questions to gather plan_draft fields (you can tell because
+your prior turns echo `Got it — <title>, €<value>...` and end with a
+question), then **EVERY subsequent user message must keep intent =
+"create_plan"** until the plan is created or the user explicitly
+abandons it. Never let short, ambiguous replies like:
+  "you make them", "you decide", "ok", "yes", "no", "8 months",
+  "Q3 2026", "30 days", "looks good", "create it"
+slip into other intents (search / general_knowledge / etc.). They are
+ALWAYS plan-gathering follow-ups when a plan_draft is in flight.
+
+### When the user delegates the answer back to you
+
+Buyers will often shortcut a question with phrases like:
+  "you decide", "you choose", "you make them", "you write it",
+  "come up with X yourself", "draft it for me", "I don't know — pick one",
+  "anything reasonable", "default is fine", "do what you think",
+  "tee see ise", "ise paku".
+
+When that happens, **DO NOT re-ask the same question**. Instead:
+  - Fill that field with a sensible default derived from the existing
+    plan_draft (title, category, value, duration, etc.) and any
+    domain knowledge.
+  - Echo the default you chose ONCE, briefly, in plan_question (e.g.
+    "I drafted a description: '<200 chars>'. Looks good or want to
+    tweak?").
+  - Then move on to the NEXT field in the checklist on the next turn.
+
+Concrete examples for description:
+  Plan_draft so far: title="Social housing platform", category="IT",
+  estimated_value=100000, duration_months=8.
+  User says: "you make them" / "come up with description yourself".
+  → Set plan_draft.description = "A web-based platform for managing the
+    municipal social-housing portfolio: tenant records, rent payments,
+    maintenance request tracking, and reporting dashboards. Initial
+    rollout for a single municipality, ~8-month delivery."
+  → Set plan_missing_field = next gap in the checklist (e.g.
+    "contract_start" or "criteria") — NOT description again.
+  → Set plan_question = the question for that next field.
+
+You must self-fill any of these on user delegation: description,
+evaluation_criteria, requirements, submission_deadline_days,
+duration_months. Never loop on the same field twice in a row.
+
 ### Order of gathering (one question per turn)
 Walk through this checklist in order. As soon as a field is satisfied,
 move to the next. NEVER ask multiple questions in plan_question.
@@ -772,6 +818,51 @@ class TendlyChatService:
     # Tool dispatch
     # ======================================================================
 
+    def _is_plan_gathering_in_progress(self, conv_messages: List[Dict]) -> bool:
+        """Detect whether the assistant is currently mid-way through a
+        plan-creation gathering conversation.
+
+        Heuristic: look at the most recent assistant turn. If it reads
+        like a "Got it — <fields>... <question>?" gathering reply
+        (no plan was persisted yet), we are still gathering. We also
+        accept the explicit `[GATHERING]` marker the response generator
+        adds. Returns False once the create_plan artifact has shipped
+        because then we move into the documents phase, not gathering."""
+        if not conv_messages:
+            return False
+        # Walk back from the most recent message, skipping the user turn
+        # that just landed (the one we're about to analyze).
+        for m in reversed(conv_messages):
+            role = m.get("role")
+            if role != "assistant":
+                continue
+            content = (m.get("content") or "").strip()
+            if not content:
+                return False
+            # If the assistant already told the user the plan was created,
+            # we are NOT gathering anymore (we moved to docs phase).
+            lower = content.lower()
+            if "/procurements/" in lower and (
+                "has been created" in lower
+                or "i created" in lower
+                or "is now in your workspace" in lower
+                or "open it at /procurements/" in lower
+            ):
+                return False
+            # Gathering signals: the prompt template makes the assistant
+            # start with "Got it" or echo plan fields, and end with a
+            # follow-up question. We just need to know it ended with a
+            # question and was a single-turn confirmation of fields.
+            ends_with_question = content.rstrip().endswith("?")
+            looks_like_gathering = (
+                content.lower().startswith("got it")
+                or "estimated value" in lower
+                or "duration of" in lower and "months" in lower
+                or "submission deadline" in lower
+            )
+            return bool(ends_with_question and looks_like_gathering)
+        return False
+
     def _dispatch_tools(self, query_info: Dict) -> ToolResult:
         """Dispatch to the appropriate tool based on query analysis."""
         intent = query_info.get("intent", "search")
@@ -958,6 +1049,19 @@ class TendlyChatService:
             # the user can give title/budget/category across separate turns.
             query_info = await self._analyze_query(user_message, history=conv_messages[:-1])
             intent = query_info.get("intent", "search")
+
+            # Defensive guard: if a plan-creation gathering loop is active
+            # (the previous assistant message asked a follow-up question
+            # for plan_draft), force intent back to create_plan even if
+            # the LLM analyzer drifted to search/general_knowledge on a
+            # short reply like "yes use the standards" / "you make them".
+            # This prevents the gathering thread from being abandoned mid-way.
+            if intent != "create_plan" and self._is_plan_gathering_in_progress(conv_messages):
+                intent = "create_plan"
+                query_info["intent"] = "create_plan"
+                query_info["needs_search"] = False
+                # plan_ready stays whatever the analyzer decided so we don't
+                # accidentally force-persist a half-finished plan.
 
             # --- Stage 2: Tool dispatch ---
             tool_result = ToolResult()
