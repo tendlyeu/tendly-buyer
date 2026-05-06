@@ -558,7 +558,7 @@ class TendlyChatService:
     # Conversation management (persisted to PostgreSQL via ChatContext model)
     # ======================================================================
 
-    def create_conversation(self, user_email=None) -> str:
+    def create_conversation(self, user_email=None, title=None) -> str:
         cid = str(uuid.uuid4())
         session = get_tendly_session()
         try:
@@ -566,7 +566,7 @@ class TendlyChatService:
                 id=str(uuid.uuid4()),
                 conversation_id=cid,
                 user_email=user_email,
-                title="New conversation",
+                title=title or "New conversation",
                 messages=[],
                 artifacts=[],
             )

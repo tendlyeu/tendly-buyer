@@ -11,6 +11,7 @@ from components.procurements.plan_list import (
     procurement_list_page,
     procurement_new_page,
     procurement_detail_page,
+    procurement_step_page,
 )
 from components.procurements.ai_review_panel import ai_review_panel
 from config.i18n import get_language_from_request, t
@@ -112,6 +113,21 @@ def register_procurement_routes(rt, chat_service):
         if not user_owns_plan(plan_id, auth.get("email") if auth else None):
             return forbidden_response(request)
         return RedirectResponse(f"/procurements/{plan_id}", status_code=302)
+
+    @rt("/procurements/{plan_id}/steps/{step_num}")
+    @require_auth
+    def get(request, plan_id: str, step_num: int):
+        """Detail page for a single workflow step (replaces the old 404)."""
+        language = get_language_from_request(request)
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
+        plan = get_plan(plan_id)
+        steps = get_steps(plan_id)
+        step_data = next((s for s in steps if s.get("step_number") == step_num), None)
+        content = procurement_step_page(plan=plan, step_number=step_num, step_data=step_data, language=language)
+        return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title")
 
     @rt("/procurements/{plan_id}/steps/{step_num}/complete")
     @require_auth

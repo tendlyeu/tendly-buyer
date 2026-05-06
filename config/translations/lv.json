@@ -143,7 +143,14 @@
   },
   "procurements": {
     "evaluation_criteria": "Vērtēšanas kritēriji",
-    "requirements": "Prasības"
+    "requirements": "Prasības",
+    "step_not_found": "Solis nav atrasts",
+    "complete_step": "Pabeigt soli",
+    "back_to_plan": "Atpakaļ pie plāna",
+    "step": "Solis",
+    "assigned_role": "Piešķirtā loma",
+    "completed_by": "Pabeidza",
+    "what_to_do": "Ko darīt šajā solī"
   },
   "create_plan": {
     "created": "Izveidots",
@@ -152,5 +159,17 @@
   "canvas": {
     "create_plan": "Jauns iepirkuma plāns",
     "legal_lookup": "Juridiskais avots"
+  },
+  "registry": {
+    "back_to_registry": "Atpakaļ uz reģistru",
+    "country": "Valsts",
+    "estimated_value": "Paredzamā vērtība",
+    "deadline": "Termiņš",
+    "description": "Apraksts",
+    "benchmark_in_chat": "Salīdzināt sarakstē",
+    "open_source": "Atvērt avotu"
+  },
+  "documents": {
+    "file_label": "Fails (PDF, DOCX, XLSX, TXT, CSV — līdz 10 MB)"
   }
 }

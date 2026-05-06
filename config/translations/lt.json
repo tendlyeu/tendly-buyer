@@ -143,7 +143,14 @@
   },
   "procurements": {
     "evaluation_criteria": "Vertinimo kriterijai",
-    "requirements": "Reikalavimai"
+    "requirements": "Reikalavimai",
+    "step_not_found": "Žingsnis nerastas",
+    "complete_step": "Pažymėti atliktu",
+    "back_to_plan": "Atgal į planą",
+    "step": "Žingsnis",
+    "assigned_role": "Priskirta rolė",
+    "completed_by": "Atliko",
+    "what_to_do": "Ką daryti šiame žingsnyje"
   },
   "create_plan": {
     "created": "Sukurta",
@@ -152,5 +159,17 @@
   "canvas": {
     "create_plan": "Naujas pirkimo planas",
     "legal_lookup": "Teisės šaltinis"
+  },
+  "registry": {
+    "back_to_registry": "Atgal į registrą",
+    "country": "Šalis",
+    "estimated_value": "Numatoma vertė",
+    "deadline": "Terminas",
+    "description": "Aprašymas",
+    "benchmark_in_chat": "Lyginti pokalbyje",
+    "open_source": "Atidaryti šaltinį"
+  },
+  "documents": {
+    "file_label": "Failas (PDF, DOCX, XLSX, TXT, CSV — iki 10 MB)"
   }
 }

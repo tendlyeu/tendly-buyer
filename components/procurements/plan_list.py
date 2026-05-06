@@ -481,6 +481,123 @@ def _documents_section(plan_id, documents=None, language="en"):
     )
 
 
+def procurement_step_page(plan, step_number, step_data, language="en"):
+    """Detail page for a single workflow step.
+
+    Shows the step name + role + status + a guidance paragraph, and a
+    "Mark step complete" action button when the step is the active one."""
+    step_meta = next((s for s in WORKFLOW_STEPS if s[0] == step_number), None)
+    if not step_meta:
+        return Div(P(t("procurements.step_not_found", language) or "Step not found",
+                     style="padding:24px;color:#6b7280;"))
+    _num, _step_id, step_name_et, role = step_meta
+
+    # Localised English explanation of what the step is for. The Estonian
+    # name lives in WORKFLOW_STEPS; we add a short rationale here so the
+    # buyer knows what to actually DO at this step.
+    GUIDANCE = {
+        1: ("Need review",
+            "Confirm the procurement need is real, scoped, and aligned "
+            "with budget priorities. The Domain Lead writes a short "
+            "needs-statement and outlines the problem to be solved."),
+        2: ("Market research",
+            "Survey the market: who supplies this, at what price range, "
+            "what specs are typical? Use the AI chat to benchmark "
+            "against similar past tenders and price-benchmark."),
+        3: ("Plan review",
+            "The Procurement Manager reviews the draft plan: procedure "
+            "type (open / restricted / simple), evaluation criteria, "
+            "qualification requirements, and timeline."),
+        4: ("Budget approval",
+            "The Board signs off on the estimated value and confirms "
+            "the funding source. After approval the plan is locked for "
+            "publication."),
+        5: ("Document preparation",
+            "The Domain Specialist drafts the contract notice, "
+            "technical specification, draft contract, and ESPD form. "
+            "Documents are uploaded below and reviewed with AI."),
+    }
+    title_en, blurb = GUIDANCE.get(step_number, ("Step", ""))
+
+    status = (step_data or {}).get("status", "pending")
+    completed_by = (step_data or {}).get("completed_by", "")
+    completed_at = (step_data or {}).get("completed_at", "")
+
+    status_color = {
+        "completed": ("#10b981", "#ecfdf5", "#065f46"),
+        "in_progress": ("#2563eb", "#eff6ff", "#1e40af"),
+        "pending": ("#9ca3af", "#f3f4f6", "#374151"),
+    }.get(status, ("#9ca3af", "#f3f4f6", "#374151"))
+    dot, bg, txt = status_color
+
+    is_current = (status == "in_progress") or (plan.get("current_step") == step_number and status != "completed")
+
+    action_btn = ""
+    if is_current:
+        action_btn = Form(
+            Button(
+                t("procurements.complete_step", language) or "Mark step complete",
+                type="submit",
+                cls="btn-primary",
+                style="font-size:13px;padding:8px 18px;",
+            ),
+            action=f"/procurements/{plan['id']}/steps/{step_number}/complete",
+            method="post",
+        )
+
+    return Div(
+        Div(
+            A("← " + (t("procurements.back_to_plan", language) or "Back to plan"),
+              href=f"/procurements/{plan['id']}",
+              style="font-size:13px;color:#6b7280;text-decoration:none;"),
+            style="margin-bottom:8px;",
+        ),
+        Div(
+            Span(f"{t('procurements.step', language) or 'Step'} {step_number} / 5",
+                 style="font-size:12px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"),
+            H1(step_name_et, style="font-size:24px;font-weight:700;color:#111827;margin:4px 0 0;"),
+            P(title_en, style="font-size:14px;color:#6b7280;margin:2px 0 0;"),
+            cls="page-header",
+        ),
+        # Status + role chips
+        Div(
+            Div(
+                Span(t("procurements.status", language), style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(
+                    Span(status.replace("_", " ").title(),
+                         style=f"font-size:13px;font-weight:600;color:{txt};background:{bg};padding:4px 10px;border-radius:6px;display:inline-block;"),
+                    style="margin-top:4px;",
+                ),
+                cls="info-card",
+            ),
+            Div(
+                Span(t("procurements.assigned_role", language) or "Assigned role",
+                     style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(role.replace("_", " ").title(),
+                    style="font-size:14px;color:#111827;font-weight:500;margin-top:2px;"),
+                cls="info-card",
+            ),
+            (Div(
+                Span(t("procurements.completed_by", language) or "Completed by",
+                     style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(completed_by or "—",
+                    style="font-size:13px;color:#111827;font-weight:500;margin-top:2px;"),
+                cls="info-card",
+            ) if status == "completed" else Div()),
+            cls="info-grid",
+        ),
+        # Guidance + action
+        Div(
+            H3(t("procurements.what_to_do", language) or "What to do at this step",
+               style="font-size:15px;font-weight:600;color:#111827;margin:0 0 8px;"),
+            P(blurb, style="font-size:14px;color:#374151;line-height:1.6;"),
+            Div(action_btn, style="margin-top:14px;") if action_btn else Div(),
+            cls="dashboard-section",
+        ),
+        cls="page-content",
+    )
+
+
 def procurement_detail_page(plan, steps=None, documents=None, language="en"):
     steps = steps or []
     documents = documents or []

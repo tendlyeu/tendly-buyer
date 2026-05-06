@@ -73,7 +73,14 @@
     "mandatory": "Kohustuslik",
     "preferred": "Soovitav",
     "evaluation_criteria": "Hindamiskriteeriumid",
-    "requirements": "Nõuded"
+    "requirements": "Nõuded",
+    "step_not_found": "Sammu ei leitud",
+    "complete_step": "Märgi samm tehtuks",
+    "back_to_plan": "Tagasi plaani juurde",
+    "step": "Samm",
+    "assigned_role": "Määratud roll",
+    "completed_by": "Tehtud",
+    "what_to_do": "Mida selles sammus teha"
   },
   "documents": {
     "page_title": "Dokumendid - Tendly Hankija",
@@ -82,7 +89,8 @@
     "coming_soon": "Dokumendihaldus tuleb peagi — laadige üles lepingud, tehnilised kirjeldused ja muud.",
     "upload_title": "Lisa dokument",
     "add": "Lisa dokument",
-    "library": "Dokumendikogu"
+    "library": "Dokumendikogu",
+    "file_label": "Fail (PDF, DOCX, XLSX, TXT, CSV — kuni 10 MB)"
   },
   "registry": {
     "page_title": "Register - Tendly Hankija",
@@ -93,7 +101,14 @@
     "search_placeholder": "Otsi nime, hankija, märksõna järgi...",
     "search": "Otsi",
     "results_found": "hanget leitud",
-    "no_results": "Hankeid ei leitud. Proovige teistsugust otsingut."
+    "no_results": "Hankeid ei leitud. Proovige teistsugust otsingut.",
+    "back_to_registry": "Tagasi registrisse",
+    "country": "Riik",
+    "estimated_value": "Eeldatav maksumus",
+    "deadline": "Tähtaeg",
+    "description": "Kirjeldus",
+    "benchmark_in_chat": "Võrdle vestluses",
+    "open_source": "Ava allikas"
   },
   "team": {
     "page_title": "Meeskond - Tendly Hankija",

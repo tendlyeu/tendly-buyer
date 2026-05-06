@@ -78,7 +78,14 @@
     "mandatory": "Mandatory",
     "preferred": "Preferred",
     "evaluation_criteria": "Evaluation Criteria",
-    "requirements": "Requirements"
+    "requirements": "Requirements",
+    "step_not_found": "Step not found",
+    "complete_step": "Mark step complete",
+    "back_to_plan": "Back to plan",
+    "step": "Step",
+    "assigned_role": "Assigned role",
+    "completed_by": "Completed by",
+    "what_to_do": "What to do at this step"
   },
   "documents": {
     "page_title": "Documents - Tendly Buyer",
@@ -87,7 +94,8 @@
     "coming_soon": "Document management coming soon — upload contracts, technical descriptions, and more.",
     "upload_title": "Add Document",
     "add": "Add Document",
-    "library": "Document Library"
+    "library": "Document Library",
+    "file_label": "File (PDF, DOCX, XLSX, TXT, CSV — max 10 MB)"
   },
   "registry": {
     "page_title": "Registry - Tendly Buyer",
@@ -98,7 +106,14 @@
     "search_placeholder": "Search by name, authority, keyword...",
     "search": "Search",
     "results_found": "procurements found",
-    "no_results": "No procurements found. Try a different search."
+    "no_results": "No procurements found. Try a different search.",
+    "back_to_registry": "Back to registry",
+    "country": "Country",
+    "estimated_value": "Estimated value",
+    "deadline": "Deadline",
+    "description": "Description",
+    "benchmark_in_chat": "Benchmark in chat",
+    "open_source": "Open source"
   },
   "team": {
     "page_title": "Team - Tendly Buyer",

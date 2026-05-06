@@ -143,7 +143,14 @@
   },
   "procurements": {
     "evaluation_criteria": "Critères d'évaluation",
-    "requirements": "Exigences"
+    "requirements": "Exigences",
+    "step_not_found": "Étape introuvable",
+    "complete_step": "Marquer comme terminée",
+    "back_to_plan": "Retour au plan",
+    "step": "Étape",
+    "assigned_role": "Rôle assigné",
+    "completed_by": "Effectué par",
+    "what_to_do": "Que faire à cette étape"
   },
   "create_plan": {
     "created": "Créé",
@@ -152,5 +159,17 @@
   "canvas": {
     "create_plan": "Nouveau plan d'achat",
     "legal_lookup": "Source juridique"
+  },
+  "registry": {
+    "back_to_registry": "Retour au registre",
+    "country": "Pays",
+    "estimated_value": "Valeur estimée",
+    "deadline": "Échéance",
+    "description": "Description",
+    "benchmark_in_chat": "Comparer dans le chat",
+    "open_source": "Ouvrir la source"
+  },
+  "documents": {
+    "file_label": "Fichier (PDF, DOCX, XLSX, TXT, CSV — max 10 Mo)"
   }
 }
