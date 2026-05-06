@@ -1,0 +1,32 @@
+# Production compose file rendered onto the VM at /opt/tendly-buyer/docker-compose.yml
+# by .github/workflows/deploy-vm.yml. Two services:
+#   - buyer-db-proxy: cloud-sql-proxy v2 sidecar for the dedicated buyer Cloud SQL
+#                     instance. Authenticates via the VM's attached service account
+#                     (ADC). Reachable from the app container as buyer-db-proxy:5432.
+#   - app:            the tendly-buyer FastHTML server. Connects to tendly-prod
+#                     (read-only) via the cloud-sql-python-connector library and to
+#                     the buyer DB via the proxy on the local Docker network.
+services:
+  buyer-db-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.21.3
+    command:
+      - "--address=0.0.0.0"
+      - "--port=5432"
+      - "${BUYER_DB_INSTANCE}"
+    restart: unless-stopped
+
+  app:
+    image: ${IMAGE_URI}
+    depends_on:
+      - buyer-db-proxy
+    ports:
+      - "80:5002"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
