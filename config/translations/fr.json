@@ -150,7 +150,19 @@
     "step": "Étape",
     "assigned_role": "Rôle assigné",
     "completed_by": "Effectué par",
-    "what_to_do": "Que faire à cette étape"
+    "what_to_do": "Que faire à cette étape",
+    "edit_title": "Modifier le plan d'achat",
+    "save": "Enregistrer les modifications",
+    "mark_complete_short": "Marquer comme terminé",
+    "step_name_domain_review": "Revue du besoin",
+    "step_name_market_research": "Étude de marché",
+    "step_name_plan_review": "Revue du plan",
+    "step_name_board_approval": "Approbation du budget",
+    "step_name_document_preparation": "Préparation des documents",
+    "role_domain_lead": "Responsable du domaine",
+    "role_procurement_manager": "Responsable des achats",
+    "role_board": "Conseil",
+    "role_domain_specialist": "Spécialiste du domaine"
   },
   "create_plan": {
     "created": "Créé",

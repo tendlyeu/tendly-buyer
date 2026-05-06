@@ -150,7 +150,19 @@
     "step": "Žingsnis",
     "assigned_role": "Priskirta rolė",
     "completed_by": "Atliko",
-    "what_to_do": "Ką daryti šiame žingsnyje"
+    "what_to_do": "Ką daryti šiame žingsnyje",
+    "edit_title": "Redaguoti pirkimo planą",
+    "save": "Išsaugoti pakeitimus",
+    "mark_complete_short": "Pažymėti atliktu",
+    "step_name_domain_review": "Poreikių apžvalga",
+    "step_name_market_research": "Rinkos tyrimas",
+    "step_name_plan_review": "Plano peržiūra",
+    "step_name_board_approval": "Biudžeto patvirtinimas",
+    "step_name_document_preparation": "Dokumentų rengimas",
+    "role_domain_lead": "Srities vadovas",
+    "role_procurement_manager": "Pirkimų vadovas",
+    "role_board": "Valdyba",
+    "role_domain_specialist": "Srities specialistas"
   },
   "create_plan": {
     "created": "Sukurta",

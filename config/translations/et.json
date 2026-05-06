@@ -80,7 +80,19 @@
     "step": "Samm",
     "assigned_role": "Määratud roll",
     "completed_by": "Tehtud",
-    "what_to_do": "Mida selles sammus teha"
+    "what_to_do": "Mida selles sammus teha",
+    "edit_title": "Muuda hankeplaani",
+    "save": "Salvesta muudatused",
+    "mark_complete_short": "Märgi tehtuks",
+    "step_name_domain_review": "Vajaduse ülevaade",
+    "step_name_market_research": "Turu-uuring",
+    "step_name_plan_review": "Hankeplaani ülevaade",
+    "step_name_board_approval": "Eelarve kinnitamine",
+    "step_name_document_preparation": "Dokumentide koostamine",
+    "role_domain_lead": "Valdkonna juht",
+    "role_procurement_manager": "Hankejuht",
+    "role_board": "Juhatus",
+    "role_domain_specialist": "Valdkonna spetsialist"
   },
   "documents": {
     "page_title": "Dokumendid - Tendly Hankija",

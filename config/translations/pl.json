@@ -150,7 +150,19 @@
     "step": "Krok",
     "assigned_role": "Przypisana rola",
     "completed_by": "Wykonał",
-    "what_to_do": "Co zrobić w tym kroku"
+    "what_to_do": "Co zrobić w tym kroku",
+    "edit_title": "Edytuj plan zamówień",
+    "save": "Zapisz zmiany",
+    "mark_complete_short": "Oznacz jako wykonane",
+    "step_name_domain_review": "Przegląd potrzeb",
+    "step_name_market_research": "Badanie rynku",
+    "step_name_plan_review": "Przegląd planu",
+    "step_name_board_approval": "Zatwierdzenie budżetu",
+    "step_name_document_preparation": "Przygotowanie dokumentów",
+    "role_domain_lead": "Kierownik dziedziny",
+    "role_procurement_manager": "Kierownik ds. zamówień",
+    "role_board": "Zarząd",
+    "role_domain_specialist": "Specjalista dziedziny"
   },
   "create_plan": {
     "created": "Utworzono",

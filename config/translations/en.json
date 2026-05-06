@@ -85,7 +85,19 @@
     "step": "Step",
     "assigned_role": "Assigned role",
     "completed_by": "Completed by",
-    "what_to_do": "What to do at this step"
+    "what_to_do": "What to do at this step",
+    "edit_title": "Edit procurement plan",
+    "save": "Save changes",
+    "mark_complete_short": "Mark complete",
+    "step_name_domain_review": "Need review",
+    "step_name_market_research": "Market research",
+    "step_name_plan_review": "Plan review",
+    "step_name_board_approval": "Budget approval",
+    "step_name_document_preparation": "Document preparation",
+    "role_domain_lead": "Domain Lead",
+    "role_procurement_manager": "Procurement Manager",
+    "role_board": "Board",
+    "role_domain_specialist": "Domain Specialist"
   },
   "documents": {
     "page_title": "Documents - Tendly Buyer",

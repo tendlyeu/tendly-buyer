@@ -195,25 +195,88 @@ def procurement_list_page(plans=None, language="en"):
     return Div(filter_bar, content, cls="page-content")
 
 
-def procurement_new_page(language="en"):
-    category_options = [Option(label, value=val) for val, label in PROCUREMENT_CATEGORIES]
+def procurement_new_page(language="en", plan=None):
+    """New / edit procurement plan form. When `plan` is given, fields are
+    pre-populated and the form posts to the edit endpoint."""
+    is_edit = bool(plan)
+    plan = plan or {}
+    meta = plan.get("metadata_json") or {}
+    if isinstance(meta, str):
+        try:
+            import json as _json
+            meta = _json.loads(meta)
+        except Exception:
+            meta = {}
+
+    category_options = []
+    cur_cat = (plan.get("category") or "").lower()
+    for val, label in PROCUREMENT_CATEGORIES:
+        opt_kwargs = {"value": val}
+        if cur_cat and val.lower() == cur_cat:
+            opt_kwargs["selected"] = True
+        category_options.append(Option(label, **opt_kwargs))
+
+    cur_method = plan.get("procurement_method") or "open"
+    def _method_opt(label, val):
+        kwargs = {"value": val}
+        if val == cur_method:
+            kwargs["selected"] = True
+        return Option(label, **kwargs)
+
+    initial_value = ""
+    if plan.get("estimated_value"):
+        try: initial_value = f"{float(plan['estimated_value']):.2f}"
+        except Exception: initial_value = ""
+
+    initial_deadline = meta.get("submission_deadline") or ""
+    # If it's an ISO date with time, take just the YYYY-MM-DD part
+    if initial_deadline and "T" in str(initial_deadline):
+        initial_deadline = str(initial_deadline).split("T")[0]
+    elif initial_deadline:
+        initial_deadline = str(initial_deadline)[:10]
+
+    initial_criteria_json = "[]"
+    if meta.get("evaluation_criteria"):
+        import json as _json
+        initial_criteria_json = _json.dumps(meta["evaluation_criteria"])
+    initial_requirements_json = "[]"
+    if meta.get("requirements"):
+        import json as _json
+        initial_requirements_json = _json.dumps(meta["requirements"])
+
+    page_title = (
+        (t("procurements.edit_title", language) or "Edit Plan") if is_edit
+        else t("procurements.new_title", language)
+    )
+    submit_label = (
+        (t("procurements.save", language) or "Save changes") if is_edit
+        else t("procurements.create", language)
+    )
+    form_action = f"/procurements/{plan['id']}/edit" if is_edit else "/procurements"
+    cancel_target = f"/procurements/{plan['id']}" if is_edit else "/procurements"
 
     return Div(
         Div(
-            H1(t("procurements.new_title", language), style="font-size:22px;font-weight:700;color:#111827;margin:0;"),
+            H1(page_title, style="font-size:22px;font-weight:700;color:#111827;margin:0;"),
             cls="page-header",
         ),
         Form(
             # Title
             Div(
                 Label(t("procurements.field_title", language), fr="title", cls="form-label"),
-                Input(name="title", id="title", type="text", placeholder=t("procurements.title_placeholder", language), cls="form-input", required=True),
+                Input(name="title", id="title", type="text",
+                      value=plan.get("title", ""),
+                      placeholder=t("procurements.title_placeholder", language),
+                      cls="form-input", required=True),
                 cls="form-group",
             ),
             # Description
             Div(
                 Label(t("procurements.field_description", language), fr="description", cls="form-label"),
-                Textarea(name="description", id="description", placeholder=t("procurements.description_placeholder", language), cls="form-textarea", rows="4"),
+                Textarea(plan.get("description", ""),
+                         name="description", id="description",
+                         placeholder=t("procurements.description_placeholder", language),
+                         cls="form-textarea", rows="4"),
                 cls="form-group",
             ),
             # Category + Estimated Value row
@@ -225,7 +288,8 @@ def procurement_new_page(language="en"):
                 ),
                 Div(
                     Label(t("procurements.field_estimated_value", language), fr="estimated_value", cls="form-label"),
-                    Input(name="estimated_value", id="estimated_value", type="number", step="0.01", placeholder="0.00", cls="form-input"),
+                    Input(name="estimated_value", id="estimated_value", type="number", step="0.01",
+                          value=initial_value, placeholder="0.00", cls="form-input"),
                     cls="form-group",
                 ),
                 cls="form-row",
@@ -234,12 +298,16 @@ def procurement_new_page(language="en"):
             Div(
                 Div(
                     Label(t("procurements.field_cpv_code", language), fr="cpv_code", cls="form-label"),
-                    Input(name="cpv_code", id="cpv_code", type="text", placeholder="e.g. 72000000", cls="form-input"),
+                    Input(name="cpv_code", id="cpv_code", type="text",
+                          value=plan.get("cpv_code", ""),
+                          placeholder="e.g. 72000000", cls="form-input"),
                     cls="form-group",
                 ),
                 Div(
                     Label(t("procurements.field_fiscal_year", language), fr="fiscal_year", cls="form-label"),
-                    Input(name="fiscal_year", id="fiscal_year", type="number", value="2026", cls="form-input"),
+                    Input(name="fiscal_year", id="fiscal_year", type="number",
+                          value=str(plan.get("fiscal_year") or 2026),
+                          cls="form-input"),
                     cls="form-group",
                 ),
                 cls="form-row",
@@ -249,18 +317,19 @@ def procurement_new_page(language="en"):
                 Div(
                     Label(t("procurements.field_method", language), fr="procurement_method", cls="form-label"),
                     Select(
-                        Option("Open procedure / Avatud hange", value="open"),
-                        Option("Restricted procedure / Piiratud hange", value="restricted"),
-                        Option("Negotiated procedure / Väljakuulutamisega läbirääkimistega hange", value="negotiated"),
-                        Option("Framework agreement / Raamleping", value="framework"),
-                        Option("Simplified / Lihthange", value="simplified"),
+                        _method_opt("Open procedure / Avatud hange", "open"),
+                        _method_opt("Restricted procedure / Piiratud hange", "restricted"),
+                        _method_opt("Negotiated procedure / Väljakuulutamisega läbirääkimistega hange", "negotiated"),
+                        _method_opt("Framework agreement / Raamleping", "framework"),
+                        _method_opt("Simplified / Lihthange", "simplified"),
                         name="procurement_method", id="procurement_method", cls="form-select",
                     ),
                     cls="form-group",
                 ),
                 Div(
                     Label(t("procurements.deadline_label", language), fr="submission_deadline", cls="form-label"),
-                    Input(name="submission_deadline", id="submission_deadline", type="date", cls="form-input"),
+                    Input(name="submission_deadline", id="submission_deadline", type="date",
+                          value=initial_deadline, cls="form-input"),
                     cls="form-group",
                 ),
                 cls="form-row",
@@ -294,7 +363,8 @@ def procurement_new_page(language="en"):
                         "data-ph-desc": t("procurements.description_placeholder", language),
                     },
                 ),
-                Input(type="hidden", name="evaluation_criteria_json", id="evaluation_criteria_json", value="[]"),
+                Input(type="hidden", name="evaluation_criteria_json",
+                      id="evaluation_criteria_json", value=initial_criteria_json),
                 cls="form-section",
             ),
             # --- Requirements section ---
@@ -326,16 +396,18 @@ def procurement_new_page(language="en"):
                         "data-lbl-preferred": t("procurements.preferred", language),
                     },
                 ),
-                Input(type="hidden", name="requirements_json", id="requirements_json", value="[]"),
+                Input(type="hidden", name="requirements_json",
+                      id="requirements_json", value=initial_requirements_json),
                 cls="form-section",
             ),
             # Form actions
             Div(
-                Button(t("procurements.cancel", language), type="button", cls="btn-secondary", onclick="window.location='/procurements'"),
-                Button(t("procurements.create", language), type="submit", cls="btn-primary"),
+                Button(t("procurements.cancel", language), type="button", cls="btn-secondary",
+                       onclick=f"window.location='{cancel_target}'"),
+                Button(submit_label, type="submit", cls="btn-primary"),
                 cls="form-actions",
             ),
-            action="/procurements",
+            action=form_action,
             method="post",
             cls="procurement-form",
         ),
@@ -490,7 +562,9 @@ def procurement_step_page(plan, step_number, step_data, language="en"):
     if not step_meta:
         return Div(P(t("procurements.step_not_found", language) or "Step not found",
                      style="padding:24px;color:#6b7280;"))
-    _num, _step_id, step_name_et, role = step_meta
+    _num, step_id, step_name_et, role = step_meta
+    loc_step_name = t(f"procurements.step_name_{step_id}", language) or step_name_et
+    loc_role = t(f"procurements.role_{role}", language) or role.replace("_", " ").title()
 
     # Localised English explanation of what the step is for. The Estonian
     # name lives in WORKFLOW_STEPS; we add a short rationale here so the
@@ -555,7 +629,7 @@ def procurement_step_page(plan, step_number, step_data, language="en"):
         Div(
             Span(f"{t('procurements.step', language) or 'Step'} {step_number} / 5",
                  style="font-size:12px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"),
-            H1(step_name_et, style="font-size:24px;font-weight:700;color:#111827;margin:4px 0 0;"),
+            H1(loc_step_name, style="font-size:24px;font-weight:700;color:#111827;margin:4px 0 0;"),
             P(title_en, style="font-size:14px;color:#6b7280;margin:2px 0 0;"),
             cls="page-header",
         ),
@@ -573,7 +647,7 @@ def procurement_step_page(plan, step_number, step_data, language="en"):
             Div(
                 Span(t("procurements.assigned_role", language) or "Assigned role",
                      style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
-                Div(role.replace("_", " ").title(),
+                Div(loc_role,
                     style="font-size:14px;color:#111827;font-weight:500;margin-top:2px;"),
                 cls="info-card",
             ),
@@ -620,6 +694,28 @@ def procurement_detail_page(plan, steps=None, documents=None, language="en"):
         }
         dot_color, bg_color, text_color = step_colors[step_status]
 
+        # Localised step name + role using translation keys
+        # (procurements.step_name_<step_id>, procurements.role_<role>)
+        loc_name = t(f"procurements.step_name_{step_id}", language) or step_name_et
+        loc_role = t(f"procurements.role_{role}", language) or role.replace("_", " ").title()
+
+        # Active step gets an inline "Mark complete" CTA so the buyer can
+        # advance the workflow without going to the step detail page first.
+        right_action = ""
+        if step_status == "in_progress":
+            right_action = Form(
+                Button(
+                    t("procurements.mark_complete_short", language) or "Mark complete",
+                    type="submit",
+                    cls="btn-primary",
+                    style="font-size:12px;padding:6px 12px;white-space:nowrap;",
+                ),
+                action=f"/procurements/{plan['id']}/steps/{num}/complete",
+                method="post",
+                style="margin-left:auto;flex-shrink:0;",
+                onclick="event.stopPropagation();",
+            )
+
         step_indicators.append(
             Div(
                 Div(
@@ -630,11 +726,12 @@ def procurement_detail_page(plan, steps=None, documents=None, language="en"):
                     style="flex-shrink:0;",
                 ),
                 Div(
-                    Div(step_name_et, style=f"font-size:13px;font-weight:600;color:{text_color};"),
-                    Div(role.replace("_", " ").title(), style="font-size:11px;color:#9ca3af;"),
-                    style="min-width:0;",
+                    Div(loc_name, style=f"font-size:13px;font-weight:600;color:{text_color};"),
+                    Div(loc_role, style="font-size:11px;color:#9ca3af;"),
+                    style="min-width:0;flex:1;",
                 ),
-                style=f"display:flex;align-items:center;gap:10px;padding:10px 14px;background:{bg_color};border-radius:10px;border:1px solid {dot_color}20;cursor:pointer;",
+                right_action,
+                style=f"display:flex;align-items:center;gap:10px;padding:10px 14px;background:{bg_color};border-radius:10px;border:1px solid {dot_color}20;cursor:pointer;margin-bottom:6px;",
                 onclick=f"window.location='/procurements/{plan['id']}/steps/{num}'",
             )
         )
@@ -686,13 +783,18 @@ def procurement_detail_page(plan, steps=None, documents=None, language="en"):
             Div(
                 H1(plan.get("title", ""), style="font-size:22px;font-weight:700;color:#111827;margin:0;"),
                 Div(
-                    A(t("procurements.edit", language), href=f"/procurements/{plan['id']}/edit", cls="btn-secondary", style="font-size:13px;padding:6px 14px;"),
+                    A(t("procurements.edit", language),
+                      href=f"/procurements/{plan['id']}/edit",
+                      cls="btn-secondary",
+                      style="font-size:13px;padding:6px 14px;white-space:nowrap;flex-shrink:0;"),
                     A(
-                        _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'),
-                        f" {t('procurements.ask_ai', language)}",
-                        href=f"/chat?plan={plan['id']}", cls="btn-primary", style="font-size:13px;padding:6px 14px;",
+                        _raw('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'),
+                        t("procurements.ask_ai", language),
+                        href=f"/chat?plan={plan['id']}",
+                        cls="btn-primary",
+                        style="font-size:13px;padding:6px 14px;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;",
                     ),
-                    style="display:flex;gap:8px;",
+                    style="display:flex;gap:8px;flex-shrink:0;",
                 ),
                 style="display:flex;align-items:center;justify-content:space-between;",
             ),

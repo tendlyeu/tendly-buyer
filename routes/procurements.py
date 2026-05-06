@@ -106,13 +106,59 @@ def register_procurement_routes(rt, chat_service):
     @rt("/procurements/{plan_id}/edit")
     @require_auth
     def get(request, plan_id: str):
-        # The detail page links here for "Edit". A full edit form is a
-        # bigger feature; for now redirect to detail (and a follow-up CL
-        # can replace this with a real edit page).
+        """Render the edit form pre-populated with the plan's current data."""
+        language = get_language_from_request(request)
         auth = get_auth_from_request(request)
-        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+        user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
             return forbidden_response(request)
-        return RedirectResponse(f"/procurements/{plan_id}", status_code=302)
+        plan = get_plan(plan_id)
+        content = procurement_new_page(language=language, plan=plan)
+        return buyer_page(content, language=language, auth=auth,
+                          active_page="procurements", chat_service=chat_service,
+                          title_key="procurements.page_title")
+
+    @rt("/procurements/{plan_id}/edit")
+    @require_auth
+    async def post(request, plan_id: str):
+        """Persist changes from the edit form."""
+        language = get_language_from_request(request)
+        auth = get_auth_from_request(request)
+        user_email = auth.get("email") if auth else None
+        if not user_owns_plan(plan_id, user_email):
+            return forbidden_response(request)
+        form = await request.form()
+
+        # Re-parse criteria + requirements from JSON inputs
+        try:
+            evaluation_criteria = json.loads(form.get("evaluation_criteria_json", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            evaluation_criteria = []
+        try:
+            requirements = json.loads(form.get("requirements_json", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            requirements = []
+        metadata = {}
+        if form.get("submission_deadline"):
+            metadata["submission_deadline"] = form.get("submission_deadline")
+        if evaluation_criteria:
+            metadata["evaluation_criteria"] = evaluation_criteria
+        if requirements:
+            metadata["requirements"] = requirements
+
+        from services.procurement_service import update_plan
+        update_plan(
+            plan_id,
+            title=form.get("title", "Untitled"),
+            description=form.get("description", ""),
+            category=form.get("category", "muu"),
+            estimated_value=float(form.get("estimated_value") or 0) or None,
+            cpv_code=form.get("cpv_code", ""),
+            fiscal_year=int(form.get("fiscal_year") or 2026),
+            procurement_method=form.get("procurement_method", "open"),
+            metadata_json=metadata or {},
+        )
+        return RedirectResponse(f"/procurements/{plan_id}", status_code=303)
 
     @rt("/procurements/{plan_id}/steps/{step_num}")
     @require_auth
