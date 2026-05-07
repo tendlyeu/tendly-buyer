@@ -838,6 +838,158 @@ class TendlyChatService:
         finally:
             session.close()
 
+    def set_conversation_metadata(self, conversation_id: str, metadata: Dict):
+        """Persist conversation-level metadata.
+
+        Currently used to store the linked procurement plan ID so that
+        every subsequent turn can re-inject the LATEST plan data into the
+        prompt — without this, the chat froze at whatever snapshot the
+        primer captured the first time the user clicked 'Ask AI', so any
+        evaluation criteria, requirements or documents added afterwards
+        were invisible to the LLM (#1180).
+        """
+        if not metadata:
+            return
+        plan_id = metadata.get("plan_id") or metadata.get("procurement_plan_id")
+        if not plan_id:
+            return
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            if not ctx:
+                return
+            ctx.procurement_plan_id = str(plan_id)
+            ctx.updated_at = datetime.utcnow()
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def get_conversation_plan_id(self, conversation_id: str) -> Optional[str]:
+        """Return the procurement_plan_id linked to this conversation."""
+        session = get_tendly_session()
+        try:
+            ctx = session.query(ChatContext).filter(
+                ChatContext.conversation_id == conversation_id
+            ).first()
+            return ctx.procurement_plan_id if ctx else None
+        finally:
+            session.close()
+
+    def _build_plan_context_block(self, plan_id: str) -> str:
+        """Build a fresh primer string from the CURRENT state of a plan.
+
+        Pulled in on every turn so edits to evaluation criteria,
+        requirements, fiscal year, deadline, uploaded documents etc.
+        are visible to the LLM immediately — no stale snapshot.
+        """
+        try:
+            from services.procurement_service import get_plan, list_documents
+        except Exception:
+            return ""
+        try:
+            plan = get_plan(plan_id)
+        except Exception:
+            plan = None
+        if not plan:
+            return ""
+
+        meta = plan.get("metadata_json") or {}
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                meta = {}
+        if not isinstance(meta, dict):
+            meta = {}
+
+        lines = [
+            "ACTIVE PROCUREMENT PLAN — refreshed from the database for "
+            "this turn. Treat every value below as already-decided fact, "
+            "and never re-ask the buyer for any of it.",
+            "",
+            f"Title: {plan.get('title') or '(no title)'}",
+        ]
+        if plan.get("description"):
+            lines.append(f"Description: {plan.get('description')}")
+        if plan.get("category"):
+            lines.append(f"Category: {plan.get('category')}")
+        ev = plan.get("estimated_value")
+        if ev:
+            try:
+                lines.append(f"Estimated value: €{float(ev):,.0f}")
+            except (TypeError, ValueError):
+                lines.append(f"Estimated value: {ev}")
+        if plan.get("cpv_code"):
+            lines.append(f"CPV code: {plan.get('cpv_code')}")
+        if plan.get("fiscal_year"):
+            lines.append(f"Fiscal year: {plan.get('fiscal_year')}")
+        if plan.get("procurement_method"):
+            lines.append(f"Procurement method: {plan.get('procurement_method')}")
+        if plan.get("status"):
+            lines.append(f"Status: {plan.get('status')}")
+        if meta.get("submission_deadline"):
+            lines.append(f"Submission deadline: {meta.get('submission_deadline')}")
+        if meta.get("duration_months"):
+            lines.append(f"Duration (months): {meta.get('duration_months')}")
+        if meta.get("contract_start"):
+            lines.append(f"Contract start: {meta.get('contract_start')}")
+
+        crit = meta.get("evaluation_criteria") or []
+        if crit:
+            lines.append("")
+            lines.append("Evaluation criteria (already set — DO NOT propose alternatives unless asked):")
+            for c in crit:
+                name = c.get("name") or c.get("criterion_name") or "(unnamed)"
+                weight = c.get("weight") or c.get("weight_percentage") or ""
+                desc = c.get("description") or ""
+                line = f"  - {name}"
+                if weight != "":
+                    line += f" ({weight}%)"
+                if desc:
+                    line += f" — {desc}"
+                lines.append(line)
+        else:
+            lines.append("")
+            lines.append("Evaluation criteria: not yet configured.")
+
+        reqs = meta.get("requirements") or []
+        if reqs:
+            lines.append("")
+            lines.append("Requirements (already set — DO NOT propose alternatives unless asked):")
+            for r in reqs:
+                text = r.get("text") or "(no text)"
+                rtype = r.get("type") or ""
+                prio = r.get("priority") or ""
+                suffix_bits = [b for b in (rtype, prio) if b]
+                suffix = f" [{', '.join(suffix_bits)}]" if suffix_bits else ""
+                lines.append(f"  - {text}{suffix}")
+        else:
+            lines.append("")
+            lines.append("Requirements: not yet configured.")
+
+        # Attached documents — list them so the LLM doesn't suggest
+        # generating something the buyer already uploaded.
+        try:
+            docs = list_documents(procurement_plan_id=plan_id) or []
+        except Exception:
+            docs = []
+        if docs:
+            lines.append("")
+            lines.append("Documents already attached to this plan:")
+            for d in docs[:20]:
+                dtype = d.get("document_type") or "other"
+                dtitle = d.get("title") or d.get("file_name") or "(untitled)"
+                lines.append(f"  - {dtitle} [{dtype}]")
+
+        lines.append("")
+        lines.append(f"Plan URL: /procurements/{plan_id}")
+        return "\n".join(lines)
+
     # ======================================================================
     # Tool dispatch
     # ======================================================================
@@ -1049,6 +1201,7 @@ class TendlyChatService:
 
             conv_title = ctx.title or "New conversation"
             conv_messages = list(ctx.messages or [])
+            linked_plan_id = ctx.procurement_plan_id
 
             # Auto-title from first user message
             if conv_title == "New conversation" and not conv_messages:
@@ -1058,6 +1211,39 @@ class TendlyChatService:
                 yield _sse_event("title", {"title": conv_title})
         finally:
             session.close()
+
+        # If this conversation is linked to a procurement plan, rebuild a
+        # fresh primer from the CURRENT plan state and stash it so
+        # _generate_response sees the latest evaluation criteria,
+        # requirements, attached documents, etc. The original /chat?plan=
+        # primer captured a snapshot at click-time, so any field the user
+        # filled in afterwards (e.g. evaluation criteria added on the
+        # plan detail page) was invisible to the LLM (#1180).
+        self._fresh_plan_primer = ""
+        if not linked_plan_id and user_email:
+            # No explicit /chat?plan= link, but if the user only owns
+            # one plan, assume they're talking about it. This unblocks
+            # the user who switches to chat after editing a plan via
+            # the form and asks "what evaluation criteria did I set?".
+            try:
+                from services.procurement_service import list_plans
+                plans = list_plans(organization_id=user_email) or []
+                if len(plans) == 1:
+                    linked_plan_id = plans[0].get("id")
+                    if linked_plan_id:
+                        try:
+                            self.set_conversation_metadata(
+                                conversation_id, {"plan_id": linked_plan_id},
+                            )
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        if linked_plan_id:
+            try:
+                self._fresh_plan_primer = self._build_plan_context_block(linked_plan_id)
+            except Exception:
+                self._fresh_plan_primer = ""
 
         # Store user message
         user_msg_dict = {
@@ -1083,7 +1269,16 @@ class TendlyChatService:
             # the LLM analyzer drifted to search/general_knowledge on a
             # short reply like "yes use the standards" / "you make them".
             # This prevents the gathering thread from being abandoned mid-way.
-            if intent != "create_plan" and self._is_plan_gathering_in_progress(conv_messages):
+            # Once a plan is linked to this conversation, the create_plan
+            # gathering loop has already finished — any heuristic that says
+            # "still gathering" is wrong, because the plan exists. Skipping
+            # the override here is what lets the buyer ask "what evaluation
+            # criteria did I set?" and get the actual answer instead of
+            # being looped back into "Got it — IT support, €50,000. What
+            # would you like the criteria to be?" (#1180 follow-up).
+            if (intent != "create_plan"
+                    and not linked_plan_id
+                    and self._is_plan_gathering_in_progress(conv_messages)):
                 intent = "create_plan"
                 query_info["intent"] = "create_plan"
                 query_info["needs_search"] = False
@@ -1138,6 +1333,19 @@ class TendlyChatService:
                     tool_result.artifact_id,
                     tool_result.artifact_data or {},
                 )
+                # Link the new plan to this conversation so the next
+                # turn loads its evaluation criteria, requirements,
+                # documents, etc. as a refreshed primer (#1180).
+                if tool_result.artifact_type == "create_plan":
+                    new_plan_id = (tool_result.artifact_data or {}).get("plan_id")
+                    if new_plan_id:
+                        try:
+                            self.set_conversation_metadata(
+                                conversation_id, {"plan_id": new_plan_id},
+                            )
+                            self._fresh_plan_primer = self._build_plan_context_block(new_plan_id)
+                        except Exception:
+                            pass
                 yield _sse_event("artifact", {
                     "type": tool_result.artifact_type,
                     "id": tool_result.artifact_id,
@@ -1787,6 +1995,13 @@ class TendlyChatService:
             m.get("content", "") for m in conversation_history
             if m.get("role") == "system" and m.get("content")
         ]
+        # Re-inject a freshly-built plan context block when the
+        # conversation is linked to a procurement plan, so any edits
+        # made on /procurements/<id> after the chat started are
+        # visible to the LLM right now (#1180 follow-up).
+        fresh_primer = getattr(self, "_fresh_plan_primer", "") or ""
+        if fresh_primer:
+            system_primers = [fresh_primer] + system_primers
         if system_primers:
             sys_prompt = (
                 sys_prompt
