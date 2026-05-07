@@ -207,6 +207,7 @@ jobs:
               --service-account="${RUNTIME_SA}@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
               --scopes=cloud-platform \
               --tags=http-server,https-server,tendly-buyer \
+              --metadata=enable-oslogin=TRUE \
               --metadata-from-file=startup-script=deploy/vm-startup.sh
             echo "Waiting for startup script to install Docker..."
             for i in $(seq 1 30); do
@@ -224,6 +225,14 @@ jobs:
           else
             echo "VM already exists."
           fi
+
+          # Always ensure OS Login is enabled on the VM. Without it, gcloud
+          # falls back to metadata-based SSH keys that accumulate per workflow
+          # run and eventually break SCP with "Permission denied (publickey)".
+          gcloud compute instances add-metadata "$VM_NAME" \
+            --zone="$GCP_ZONE" \
+            --project="$GCP_PROJECT_ID" \
+            --metadata=enable-oslogin=TRUE >/dev/null
 
       - name: Ensure static external IP and attach to VM
         run: |
