@@ -90,8 +90,16 @@ Analyze the user's message step by step, then return ONLY valid JSON (no markdow
   "tender_id": null or number,
   "tender_ids": null or [number, number],
   "company_name": "string or null",
-  "search_type": "industry"|"topic"|"location"|"value"|"tender_id"|"general"|"company"|"tender_compare"|"create_plan"
+  "search_type": "industry"|"topic"|"location"|"value"|"tender_id"|"general"|"company"|"tender_compare"|"create_plan",
+  "doc_type": null | "technical_specification" | "draft_contract" | "evaluation_methodology" | "espd"
 }
+
+For rfp_draft intent only: when the user explicitly names one of the
+four standard procurement documents (technical specification / tehniline
+kirjeldus, draft contract / lepingu kavand, evaluation methodology /
+hindamismetoodika, ESPD / own-declaration), set doc_type accordingly so
+the generator can focus the output on that document. If none is named,
+leave doc_type=null and a full RFP is produced.
 
 ### Audience
 This assistant serves **public-sector procurement BUYERS** preparing
@@ -451,6 +459,22 @@ User: "create a tender document for security guard services at 3 government buil
 → Step 1: English. Step 2: none. Step 3: security → CPV 79. Step 4: security guards. Step 5: none. Step 6: none. Step 7: none.
 {"intent":"rfp_draft","needs_search":false,"country_codes":[],"industry":"security","cpv_divisions":["79"],"keywords":["security","guard"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":"Security guard services at 3 government buildings"}
 
+User (after a plan was created): "draft the technical specification"
+→ Step 1: English. Step 7: none. Plan context already attached, so rfp_description can stay null — the tool will pull it from conversation history.
+{"intent":"rfp_draft","needs_search":false,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":["technical","specification"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":null,"doc_type":"technical_specification"}
+
+User (after a plan was created): "tee mulle tehniline kirjeldus eesti keeles"
+→ Step 1: Estonian. Plan context attached. doc_type=technical_specification.
+{"intent":"rfp_draft","needs_search":false,"country_codes":["EE"],"industry":null,"cpv_divisions":[],"keywords":["tehniline","kirjeldus"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":null,"doc_type":"technical_specification"}
+
+User (after a plan was created): "generate the draft contract"
+→ Step 1: English. doc_type=draft_contract.
+{"intent":"rfp_draft","needs_search":false,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":["draft","contract"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":null,"doc_type":"draft_contract"}
+
+User (after a plan was created): "propose evaluation methodology"
+→ Step 1: English. doc_type=evaluation_methodology.
+{"intent":"rfp_draft","needs_search":false,"country_codes":[],"industry":null,"cpv_divisions":[],"keywords":["evaluation","methodology"],"min_value":null,"max_value":null,"tender_id":null,"company_name":null,"search_type":"topic","rfp_description":null,"doc_type":"evaluation_methodology"}
+
 User: "create a procurement plan for IT support, 50,000 EUR, 2-year contract"
 → Step 1: English. Step 2: none. Step 3: IT → CPV 72. Step 4: IT support. Step 5: 50,000. Step 6: 2-year. Step 7: none.
 {"intent":"create_plan","needs_search":false,"country_codes":[],"industry":"information technology","cpv_divisions":["72"],"keywords":["IT","support"],"min_value":null,"max_value":null,"estimated_value":50000,"tender_id":null,"company_name":null,"search_type":"create_plan","rfp_description":"IT support, 2-year contract, 50,000 EUR"}
@@ -597,24 +621,24 @@ proportionality.
 
 # Response guidelines
 - Use markdown formatting. Be concise but insightful.
-- When tender results are shown, treat them as REFERENCE MATERIAL the
-  buyer can learn from when drafting their own. Highlight: how many
-  comparable past tenders found, value ranges, common CPV codes, what
-  evaluation criteria peers used, typical contract durations, useful
-  patterns for the user's own draft (price/quality weighting,
-  qualification thresholds).
+- This chat is for BUILDING the buyer's own procurement (plan, RFP,
+  evaluation criteria, requirements, budget). It is NOT a tender
+  browser. NEVER list other published tenders, NEVER recommend
+  searching for tenders, NEVER include tender IDs/links in your reply.
+  If a buyer wants to browse the registry they will go to /registry
+  directly. From this chat, only reference tenders that the user
+  explicitly pinned (e.g. via 'Benchmark in chat'); never volunteer
+  other ones.
 - When you give legal/procedural advice, cite the relevant RHS section
   number (e.g. "per RHS §85 you must state explicit weights"). When
   the user asks for the exact text of a section, use the legal_lookup
   tool to fetch from riigiteataja.ee and quote it accurately.
-- Do NOT list individual tenders in the text — the UI renders them as
-  cards separately.
-- If no tenders found, explain possible reasons and suggest 2-3
-  alternative benchmarking searches.
 - End with a "**Try also:**" section with 2-3 contextually relevant
-  follow-up actions, EXCEPT in multi-turn plan creation gathering mode.
-- Do NOT fabricate tender data. Only reference tenders from the
-  provided search results.
+  follow-up actions for the buyer's own procurement (e.g. 'draft the
+  technical specification', 'set evaluation criteria', 'refine the
+  budget'), EXCEPT in multi-turn plan creation gathering mode. Do NOT
+  suggest "search for tenders" or "browse similar tenders".
+- Do NOT fabricate tender data.
 - Format currency with symbols (€ for EUR). Highlight deadlines."""
 
 MARKET_INTELLIGENCE_PROMPT = """You are Tendly AI, specializing in government procurement market intelligence.
@@ -999,9 +1023,12 @@ class TendlyChatService:
         constraint so a single ambiguous word like "Hi" doesn't drift to
         whatever language the LLM defaults to."""
         # Stash for tools that need to know who's logged in (e.g. create_plan
-        # which writes to procurement_plans scoped by org_id = user_email).
+        # which writes to procurement_plans scoped by org_id = user_email),
+        # and the conversation ID (e.g. rfp_draft which pulls plan context
+        # from the conversation's stored system primer).
         self._current_user_email = user_email
         self._current_ui_language = ui_language
+        self._current_conversation_id = conversation_id
         # Ensure conversation exists in DB
         session = get_tendly_session()
         try:
@@ -1063,6 +1090,17 @@ class TendlyChatService:
                 # plan_ready stays whatever the analyzer decided so we don't
                 # accidentally force-persist a half-finished plan.
 
+            # Per #1179: the buyer chat exists to help BUILD new procurements,
+            # not to browse the published-tender registry. Reroute browse
+            # intents (search / company_search / market_intelligence) to
+            # general guidance so the chat never dumps tender cards into
+            # the conversation. Buyers who want to browse tenders use
+            # /registry directly.
+            if intent in ("search", "market_intelligence", "company_search"):
+                intent = "general_knowledge"
+                query_info["intent"] = "general_knowledge"
+                query_info["needs_search"] = False
+
             # --- Stage 2: Tool dispatch ---
             tool_result = ToolResult()
             # Intents that always need a tool to run, even when no DB search
@@ -1080,9 +1118,17 @@ class TendlyChatService:
                 yield _sse_event("status", {"status": "searching", "message": status_msg})
                 tool_result = await asyncio.to_thread(self._dispatch_tools, query_info)
 
-            # Emit tender cards
-            if tool_result.tenders:
+            # Emit tender cards — but ONLY when the artifact itself is a
+            # tender-comparison/detail (canvas) view. The buyer chat does
+            # not browse tenders inline (#1179): if no tender artifact was
+            # produced, drop the cards so the conversation stays focused
+            # on the buyer's own procurement.
+            if tool_result.tenders and tool_result.artifact_type in (
+                "tender_detail", "tender_comparison",
+            ):
                 yield _sse_event("tenders", {"tenders": tool_result.tenders})
+            else:
+                tool_result.tenders = []
 
             # Emit artifact event for canvas panel
             if tool_result.artifact_type and tool_result.artifact_id:
@@ -1537,6 +1583,60 @@ class TendlyChatService:
                 "create_plan does not open a canvas.\n"
                 " - Do NOT add a 'Try also' section.\n"
             )
+        elif intent == "price_benchmark":
+            # The buyer asked for help setting a fair budget. Whether or
+            # not the price_benchmark tool found UK comparables, the LLM
+            # MUST never ask the user for their budget — that would
+            # defeat the entire purpose of the suggestion. Instead it
+            # should gather scope details, then propose a range itself.
+            sys_prompt = sys_prompt + (
+                "\n\n=== FAIR-BUDGET / PRICE-BENCHMARK MODE ===\n"
+                "The buyer wants YOU to PROPOSE a budget for a procurement "
+                "they are planning. Your job is the opposite of asking them "
+                "for it.\n\n"
+                "**HARD RULES — NEVER VIOLATE:**\n"
+                " - NEVER ask 'what is your budget?', 'how much do you want "
+                "   to spend?', 'what range did you have in mind?' or any "
+                "   variant. The user came here precisely BECAUSE they don't "
+                "   know — proposing a number is your job.\n"
+                " - If you don't have enough scope info to estimate, ask "
+                "   ONE focused question about the procurement scope, NOT "
+                "   about the budget. Examples of allowed questions: 'what "
+                "   exactly is being procured?', 'how many users / sites / "
+                "   units?', 'over what duration?', 'in which region?', "
+                "   'what quality / SLA tier?'.\n"
+                " - Once you have a basic shape (what + size + duration), "
+                "   PROPOSE a budget range yourself with reasoning. Cite "
+                "   any artifact data (UK comparables, RHS thresholds) "
+                "   that anchors your range.\n\n"
+                "**RESPONSE STRUCTURE:**\n"
+                " A. If you have enough info → propose a range:\n"
+                "    'Based on similar contracts and typical Estonian "
+                "    market rates, a fair budget for X is **€a – €b** "
+                "    (median ~€c). Drivers: ... . You can refine by "
+                "    tightening Y or adjusting Z.'\n"
+                "    Then a 'Try also:' with 2-3 follow-ups (lock in "
+                "    plan, draft RFP, refine assumptions).\n"
+                " B. If you need more info → ask exactly ONE scope "
+                "    question, briefly explain what you'll do once "
+                "    answered, no Try-also.\n\n"
+                "**FORBIDDEN PHRASES (do not output any of these):**\n"
+                " - 'What is your budget?'\n"
+                " - 'What budget did you have in mind?'\n"
+                " - 'Could you share your expected price range?'\n"
+                " - 'How much are you willing to spend?'\n"
+                " - 'Mis on Teie eelarve?' / equivalents in other "
+                "    languages.\n"
+            )
+            # If a price_benchmark artifact was generated, also ensure the
+            # canvas summary path adds the standard preview format.
+            if artifact_type:
+                sys_prompt = sys_prompt + (
+                    "\n\nA price_benchmark canvas artifact has been generated. "
+                    "Reference its averages/medians in your proposed range, "
+                    "and tell the user the full chart is in the canvas with "
+                    "Copy/Download buttons.\n"
+                )
         elif artifact_type:
             sys_prompt = sys_prompt + (
                 f"\n\nIMPORTANT: A specialised '{artifact_type}' tool has "
@@ -1690,7 +1790,27 @@ class TendlyChatService:
         if system_primers:
             sys_prompt = (
                 sys_prompt
-                + "\n\n=== ACTIVE PLAN CONTEXT (always honor this) ===\n"
+                + "\n\n=== ACTIVE PLAN / BENCHMARK CONTEXT — TREAT AS GROUND TRUTH ===\n"
+                + "The buyer arrived in this chat from an existing procurement "
+                + "plan (or pinned a benchmark tender). The block(s) below are "
+                + "ALREADY ANSWERED facts — title, description, value, "
+                + "duration, evaluation criteria, requirements, deadline, "
+                + "category, etc. You MUST use them verbatim.\n\n"
+                + "HARD RULES:\n"
+                + " 1. NEVER ask the buyer for any field that is already filled "
+                + "    below. If estimated_value is set to €50,000, do not ask "
+                + "    'what's your budget?' — use €50,000.\n"
+                + " 2. NEVER propose alternative criteria/requirements when the "
+                + "    plan already lists them. Reuse the listed ones; only "
+                + "    suggest changes if the buyer explicitly asks.\n"
+                + " 3. If the buyer asks for a document (technical "
+                + "    specification, draft contract, evaluation methodology, "
+                + "    ESPD, etc.), GENERATE IT NOW from the data below — do "
+                + "    not ask which fields to use, do not ask for the budget "
+                + "    again. If something genuinely needed is missing, ask "
+                + "    ONE focused question for that specific gap only.\n"
+                + " 4. Match the user's latest message language.\n\n"
+                + "Plan / benchmark facts:\n"
                 + "\n\n".join(system_primers)
             )
 
@@ -1719,22 +1839,12 @@ class TendlyChatService:
         if result.get("success") and result.get("content"):
             return result["content"]
 
-        if tenders:
-            return (
-                f"I found **{len(tenders)} active tender(s)** matching your search. "
-                "Browse the results in the panel.\n\n"
-                "**Try also:**\n"
-                "- Narrow by country (e.g. \"IT tenders in Estonia\")\n"
-                "- Filter by value (e.g. \"tenders above 100,000 EUR\")\n"
-                "- Search by industry (e.g. \"construction tenders\")"
-            )
         return (
-            "I couldn't find any active tenders matching your criteria. "
-            "Try broadening your search or using different keywords.\n\n"
+            "Tell me what you're procuring and I'll help you build the plan.\n\n"
             "**Try also:**\n"
-            "- Search by industry (e.g. \"construction\", \"IT services\")\n"
-            "- Search by country (e.g. \"tenders in France\")\n"
-            "- Ask about procurement processes or tendering concepts"
+            "- Start a procurement plan (e.g. \"create a plan for IT support, €50k\")\n"
+            "- Draft an RFP (e.g. \"draft an RFP for office cleaning\")\n"
+            "- Set a fair budget (I'll ask scope questions, then propose one)"
         )
 
 

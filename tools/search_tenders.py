@@ -9,7 +9,7 @@ from core.database import (
     TenderQualityScore,
 )
 from tools.registry import Tool, ToolResult, tool_registry
-from core.url_utils import get_tendly_url
+from core.url_utils import get_tendly_url, get_source_portal_url
 
 
 COUNTRY_FLAGS = {
@@ -45,7 +45,11 @@ def format_tender(tender, detail, quality=None, docs=None) -> Dict:
         "description": (tender.short_description_en or tender.short_description or "")[:200],
         "is_green": detail.is_green if detail else False,
         "is_eu_funded": detail.is_eu_financing if detail else False,
-        "source_url": tender.source_portal_url or "",
+        "source_url": get_source_portal_url(
+            tender.procurement_id,
+            tender.country_code,
+            tender.source_portal_url or "",
+        ),
         "quality_score": quality.overall_score if quality else None,
         "tendly_url": get_tendly_url(tender.procurement_id, tender.procurement_name_en or tender.procurement_name),
         "documents": formatted_docs,

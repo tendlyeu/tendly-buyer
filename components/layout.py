@@ -101,7 +101,7 @@ def chat_page(conversation_id=None, messages=None, chat_service=None, language="
         visible = [m for m in messages if m.get("role") != "system"]
         main_area = Div(
             Div(
-                *[message_component(m, language=language) for m in visible],
+                *[message_component(m, language=language, conversation_id=conversation_id or "") for m in visible],
                 id="messages",
                 cls="messages-container",
             ),
