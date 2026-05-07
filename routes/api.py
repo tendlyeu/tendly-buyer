@@ -209,6 +209,44 @@ def register_api_routes(rt, chat_service):
             file_path=result["file_path"],
         )
 
+        # Inject the extracted text into the conversation as a system
+        # primer so the LLM actually USES the document on the next turn
+        # (#1181). Without this the chat acknowledged the upload but
+        # then hallucinated answers because the file content never
+        # reached the prompt.
+        content_text = (result.get("content_text") or "").strip()
+        if content_text:
+            from datetime import datetime as _dt
+            MAX_DOC_CHARS = 12000
+            preview = content_text[:MAX_DOC_CHARS]
+            truncated_note = "" if len(content_text) <= MAX_DOC_CHARS else (
+                f"\n\n[document truncated: showing first {MAX_DOC_CHARS} of "
+                f"{len(content_text)} characters]"
+            )
+            primer = (
+                "ATTACHED DOCUMENT — the buyer just uploaded this file via "
+                "the chat paperclip. Treat its contents as authoritative "
+                "context for the rest of the conversation. When the user "
+                "asks about 'my document', 'this doc', 'past procurement', "
+                "etc. you MUST answer from the text below, not from "
+                "general knowledge. NEVER say you can't see the file — "
+                "the text is right here.\n"
+                f"\nFile: {uploaded.filename} (plan: {target_plan_title or '—'})\n"
+                f"Document ID: {doc.get('id')}\n\n"
+                f"=== BEGIN DOCUMENT TEXT ==={truncated_note}\n"
+                f"{preview}\n"
+                f"=== END DOCUMENT TEXT ==="
+            )
+            try:
+                chat_service._append_message(conversation_id, {
+                    "role": "system",
+                    "content": primer,
+                    "tenders": [],
+                    "timestamp": _dt.utcnow().isoformat(),
+                })
+            except Exception:
+                pass
+
         return JSONResponse({
             "ok": True,
             "conversation_id": conversation_id,

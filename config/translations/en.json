@@ -150,9 +150,11 @@
   "team": {
     "page_title": "Team - Tendly Buyer",
     "title": "Team",
-    "subtitle": "Manage your procurement team roles and members",
+    "subtitle": "Invite your procurement team to collaborate on plans",
     "empty": "No team members configured yet",
     "coming_soon": "Assign roles: Domain Lead, Procurement Manager, Board, Domain Specialist.",
+    "coming_soon_title": "Team management — coming soon",
+    "coming_soon_body": "Soon you'll be able to invite procurement managers, domain leads and board approvers to collaborate on plans. We're polishing the invite flow — stay tuned.",
     "add_member": "Add Team Member",
     "add": "Add Member",
     "members": "Team Members"
@@ -165,7 +167,7 @@
     "suggestion_2_title": "Draft an RFP",
     "suggestion_2_text": "Help me write the technical specs",
     "suggestion_3_title": "Set a fair budget",
-    "suggestion_3_text": "What should road maintenance cost?",
+    "suggestion_3_text": "Help me figure out a fair budget for a procurement I'm planning — ask me what you need to know, then propose a budget range.",
     "suggestion_4_title": "Find vendors",
     "suggestion_4_text": "Who can deliver this in Estonia?"
   },

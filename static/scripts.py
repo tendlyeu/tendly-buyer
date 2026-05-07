@@ -520,16 +520,34 @@ window.closeCanvas = function() {
 window.openArtifact = function(type, id, title, conversationIdOverride) {
     var convId = conversationIdOverride || activeConversationId || document.body.dataset.conversationId || '';
     var url = '/api/artifact/' + type + '/' + encodeURIComponent(id) + '?conversation_id=' + encodeURIComponent(convId);
+    var displayTitle = title || type;
     fetch(url)
         .then(function(resp) {
-            if (!resp.ok) return null;
+            if (!resp.ok) {
+                // Surface the failure in-canvas so the user sees something
+                // (instead of a button that "does nothing"). #1182.
+                var msg = resp.status === 404
+                    ? (_t('canvas.artifact_missing',
+                          'This artifact is no longer available. ' +
+                          'Ask the AI to regenerate it.'))
+                    : (_t('canvas.artifact_error',
+                          'Could not load the artifact (status ') + resp.status + ').');
+                openCanvas(displayTitle, '<div style="padding:16px;color:#6b7280;font-size:13px;">' + msg + '</div>');
+                return null;
+            }
             return resp.text();
         })
         .then(function(html) {
             if (!html) return;
-            openCanvas(title || type, html);
+            openCanvas(displayTitle, html);
         })
-        .catch(function(e) { console.error('Artifact load error', e); });
+        .catch(function(e) {
+            console.error('Artifact load error', e);
+            openCanvas(displayTitle,
+                '<div style="padding:16px;color:#6b7280;font-size:13px;">' +
+                _t('canvas.artifact_error', 'Could not load the artifact.') +
+                '</div>');
+        });
 };
 
 // Open tender detail in canvas (replaces old overlay approach)

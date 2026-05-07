@@ -147,6 +147,107 @@ def register_page_routes(rt, chat_service):
                 })
                 return RedirectResponse(f"/chat/c/{cid}", status_code=302)
 
+        # /chat?benchmark={tender_id} — opens a fresh conversation primed
+        # with the tender's full detail so the buyer can immediately ask
+        # "what's a fair budget?", "compare with similar past tenders",
+        # "draft a similar RFP", etc. Without this primer the link just
+        # opened an empty chat and the user had to re-explain what they
+        # wanted to benchmark against (issue #1190).
+        benchmark_id = request.query_params.get("benchmark")
+        if benchmark_id and user_email:
+            try:
+                tid = int(benchmark_id)
+            except (TypeError, ValueError):
+                tid = None
+            if tid is not None:
+                detail = chat_service.get_tender_detail(tid)
+                if detail:
+                    name = (detail.get("name_original")
+                            or detail.get("name") or f"Tender {tid}")
+                    authority = detail.get("authority", "")
+                    country = detail.get("country", "")
+                    value = detail.get("value")
+                    currency = detail.get("currency", "EUR")
+                    deadline = detail.get("deadline", "") or ""
+                    cpv = detail.get("cpv_name", "") or detail.get("cpv_code", "")
+                    description = (detail.get("description_original")
+                                   or detail.get("description") or "")
+                    criteria = detail.get("evaluation_criteria") or []
+                    reqs = detail.get("ai_requirements") or ""
+                    quality = detail.get("quality_score")
+
+                    primer_lines = [
+                        "BENCHMARK CONTEXT — the buyer just clicked 'Benchmark in chat' "
+                        "from the registry on the past tender below. Use it as a "
+                        "REFERENCE to help the buyer plan their OWN procurement. "
+                        "Do NOT search for new tenders. Do NOT browse other tenders.",
+                        "",
+                        f"Reference tender ID: {tid}",
+                        f"Name: {name}",
+                    ]
+                    if authority:
+                        primer_lines.append(f"Authority: {authority}")
+                    if country:
+                        primer_lines.append(f"Country: {country}")
+                    if value:
+                        try:
+                            primer_lines.append(f"Estimated value: {currency} {float(value):,.0f}")
+                        except (TypeError, ValueError):
+                            primer_lines.append(f"Estimated value: {value} {currency}")
+                    if deadline:
+                        primer_lines.append(f"Submission deadline: {str(deadline)[:10]}")
+                    if cpv:
+                        primer_lines.append(f"CPV: {cpv}")
+                    if quality is not None:
+                        primer_lines.append(f"Quality score: {quality}/100")
+                    if description:
+                        primer_lines.append("")
+                        primer_lines.append(f"Description: {description[:1500]}")
+                    if criteria:
+                        primer_lines.append("")
+                        primer_lines.append("Evaluation criteria used:")
+                        for c in criteria[:8]:
+                            cname = c.get("name") or c.get("criterion_name") or "(unnamed)"
+                            cw = c.get("weight") or c.get("weight_percentage") or ""
+                            cline = f"  - {cname}"
+                            if cw != "":
+                                cline += f" ({cw}%)"
+                            primer_lines.append(cline)
+                    if reqs:
+                        primer_lines.append("")
+                        primer_lines.append(f"Requirements: {reqs[:1500]}")
+                    primer = "\n".join(primer_lines)
+
+                    cid = chat_service.create_conversation(
+                        user_email=user_email,
+                        title=f"Benchmark: {name[:60]}",
+                    )
+                    chat_service._append_message(cid, {
+                        "role": "system",
+                        "content": primer,
+                        "tenders": [],
+                        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                    })
+                    val_str = ""
+                    if value:
+                        try: val_str = f", {currency} {float(value):,.0f}"
+                        except (TypeError, ValueError): val_str = ""
+                    chat_service._append_message(cid, {
+                        "role": "assistant",
+                        "content": (
+                            f"I've loaded the past tender **\"{name}\"**"
+                            f"{val_str}{(' — ' + authority) if authority else ''}.\n\n"
+                            "How would you like to use it as a benchmark?\n\n"
+                            "- Set a fair budget for a similar procurement\n"
+                            "- Compare evaluation criteria & requirements\n"
+                            "- Draft a similar RFP for your own tender\n"
+                            "- Identify likely vendors / market participants\n"
+                        ),
+                        "tenders": [],
+                        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                    })
+                    return RedirectResponse(f"/chat/c/{cid}", status_code=302)
+
         return chat_page(chat_service=chat_service, language=language, auth=auth, rate_info=rate_info)
 
     @rt("/chat/c/{conversation_id}")

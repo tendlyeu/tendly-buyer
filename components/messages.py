@@ -23,13 +23,19 @@ _ARTIFACT_LABELS = {
 }
 
 
-def _reopen_artifact_button(artifact: dict, language: str):
+def _reopen_artifact_button(artifact: dict, language: str, conversation_id: str = ""):
     """Render a button that re-opens the artifact's canvas panel.
 
     Persisted assistant messages now include their `artifact` reference, so
     when the user reloads or revisits a past conversation we can offer them
     a way to bring the side panel back. Previously the canvas was only
     reachable during the original SSE stream — once dismissed, it was gone.
+
+    The conversation_id is threaded explicitly into the onclick so the
+    button still works in edge cases where activeConversationId / the
+    body data attribute haven't been initialised yet (e.g. before
+    DOMContentLoaded fires, or when the chat is rendered inside another
+    page's iframe).
     """
     art_type = artifact.get("type") or ""
     art_id = artifact.get("id") or ""
@@ -40,13 +46,16 @@ def _reopen_artifact_button(artifact: dict, language: str):
     label = t(key, language) or fallback
     button_label = (t("chat.reopen_artifact", language) or "Reopen") + " " + label
 
+    conv_id = artifact.get("conversation_id") or conversation_id or ""
+
     if art_type == "tender_detail" and artifact.get("tender_id"):
         onclick = f"showTenderDetail({_json.dumps(int(artifact['tender_id']))})"
     elif art_id:
         onclick = (
             f"openArtifact({_json.dumps(art_type)},"
             f"{_json.dumps(art_id)},"
-            f"{_json.dumps(label)})"
+            f"{_json.dumps(label)},"
+            f"{_json.dumps(conv_id)})"
         )
     else:
         return None
@@ -61,7 +70,7 @@ def _reopen_artifact_button(artifact: dict, language: str):
     )
 
 
-def message_component(msg, language="en"):
+def message_component(msg, language="en", conversation_id=""):
     is_user = msg.get("role") == "user"
     avatar_letter = "Y" if is_user else "T"
     avatar_cls = "avatar user-avatar" if is_user else "avatar ai-avatar"
@@ -100,7 +109,7 @@ def message_component(msg, language="en"):
         ]
         artifact = msg.get("artifact")
         if isinstance(artifact, dict):
-            reopen_btn = _reopen_artifact_button(artifact, language)
+            reopen_btn = _reopen_artifact_button(artifact, language, conversation_id=conversation_id)
             if reopen_btn is not None:
                 action_buttons.append(reopen_btn)
         action_bar = Div(*action_buttons, cls="message-actions")

@@ -9,7 +9,7 @@ from core.database import (
 )
 from tools.registry import Tool, ToolResult, tool_registry
 from tools.search_tenders import COUNTRY_FLAGS, CURRENCY_SYMBOLS
-from core.url_utils import get_tendly_url
+from core.url_utils import get_tendly_url, get_source_portal_url
 
 
 class TenderDetailTool(Tool):
@@ -90,7 +90,11 @@ def get_tender_detail(tender_id: int) -> Optional[Dict]:
             "is_e_procurement": tender.is_e_procurement,
             "is_green": tender.is_green_procurement,
             "buyer_email": tender.buyer_email or "",
-            "source_url": tender.source_portal_url or "",
+            "source_url": get_source_portal_url(
+                tender.procurement_id,
+                tender.country_code,
+                tender.source_portal_url or "",
+            ),
             "tendly_url": get_tendly_url(tender.procurement_id, tender.procurement_name_en or tender.procurement_name),
             "value": detail.estimated_cost if detail else None,
             "duration_months": detail.duration_in_months if detail else None,

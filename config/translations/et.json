@@ -145,9 +145,11 @@
   "team": {
     "page_title": "Meeskond - Tendly Hankija",
     "title": "Meeskond",
-    "subtitle": "Hallake oma hankemeeskonna rolle ja liikmeid",
+    "subtitle": "Kutsu oma hankemeeskond plaanide kallal koos töötama",
     "empty": "Meeskonnaliikmeid pole veel seadistatud",
     "coming_soon": "Määrake rollid: valdkonna juht, hankejuht, juhatus, valdkonna spetsialist.",
+    "coming_soon_title": "Meeskonnahaldus — peagi tulemas",
+    "coming_soon_body": "Varsti saate kutsuda hankejuhte, valdkonna juhte ja juhatuse liikmeid plaanide kallal koos töötama. Me viimistleme veel kutsete voogu — jääge kuulama.",
     "add_member": "Lisa meeskonnaliige",
     "add": "Lisa liige",
     "members": "Meeskonnaliikmed"
@@ -160,7 +162,7 @@
     "suggestion_2_title": "Koosta RFP",
     "suggestion_2_text": "Aita kirjutada tehniline kirjeldus",
     "suggestion_3_title": "Hinda õiglast eelarvet",
-    "suggestion_3_text": "Palju peaks teeremont maksma?",
+    "suggestion_3_text": "Aita mul leida õiglane eelarve hankele, mida ma plaanin — küsi vajalikku ja paku siis vahemik.",
     "suggestion_4_title": "Leia pakkujad",
     "suggestion_4_text": "Kes saaks selle Eestis teostada?"
   },

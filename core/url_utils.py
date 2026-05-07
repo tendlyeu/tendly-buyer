@@ -42,3 +42,31 @@ def get_tendly_url(tender_id, tender_name, language="en"):
     if slug:
         return f"https://tendly.eu/{prefix}/tender/{tender_id}-{slug}"
     return f"https://tendly.eu/{prefix}/tender/{tender_id}"
+
+
+def get_source_portal_url(tender_id, country_code, stored_url=""):
+    """Return a deep link to the tender on its source portal.
+
+    The Tender.source_portal_url column is often empty or holds the
+    portal root rather than a tender-specific deep link. To make
+    "Open source" useful, we synthesise a deep link from the country
+    code and procurement_id when we know the URL pattern, falling
+    back to the stored URL only if it actually points at the tender.
+    """
+    cc = (country_code or "").upper()
+    if cc == "EE" and tender_id:
+        return f"https://riigihanked.riik.ee/rhr-web/#/procurement/{tender_id}/general-info"
+    if stored_url and str(tender_id) in stored_url:
+        return stored_url
+    # Per-country fallbacks point at the portal root rather than a
+    # tender deep link — surface them only if we have nothing better.
+    portal_roots = {
+        "GB": "https://www.find-tender.service.gov.uk/",
+        "LV": "https://www.eis.gov.lv/",
+        "LT": "https://www.eviesiejipirkimai.lt/",
+        "PL": "https://ezamowienia.gov.pl/",
+        "FR": "https://www.boamp.fr/",
+    }
+    if stored_url:
+        return stored_url
+    return portal_roots.get(cc, "")
