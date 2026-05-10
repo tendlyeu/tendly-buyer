@@ -2,6 +2,7 @@
 
 import json
 import asyncio
+from urllib.parse import urlparse, urlencode, parse_qsl, urlunparse
 
 from starlette.responses import StreamingResponse, HTMLResponse, Response, RedirectResponse, JSONResponse
 from fasthtml.common import to_xml
@@ -463,8 +464,19 @@ def register_api_routes(rt, chat_service):
     def get(request, lang: str):
         if lang not in SUPPORTED_LANGUAGES:
             lang = "en"
-        referer = request.headers.get("referer", "/")
-        redirect_url = referer if referer else "/"
+        referer = request.headers.get("referer", "/") or "/"
+        # Strip ?lang=... so the new cookie value isn't immediately overridden
+        # by a stale query param (the bug Maarius hit when ET->EN didn't take).
+        # Also reject cross-origin referer to prevent open-redirect via crafted
+        # Referer header.
+        try:
+            parts = urlparse(referer)
+            if parts.netloc and parts.netloc != request.url.netloc:
+                parts = urlparse("/")
+            qs = [(k, v) for (k, v) in parse_qsl(parts.query, keep_blank_values=True) if k != "lang"]
+            redirect_url = urlunparse(parts._replace(query=urlencode(qs))) or "/"
+        except Exception:
+            redirect_url = "/"
         response = RedirectResponse(url=redirect_url, status_code=302)
         response.set_cookie(
             key=LANGUAGE_COOKIE,

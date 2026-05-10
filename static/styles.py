@@ -1991,6 +1991,50 @@ body {
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
+.form-input-error,
+.form-input-error:focus,
+.form-select.form-input-error,
+.form-textarea.form-input-error {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.12) !important;
+}
+.form-help {
+    font-size: 11px;
+    color: #6b7280;
+    margin: 4px 0 0;
+}
+.form-error {
+    font-size: 12px;
+    color: #dc2626;
+    margin: 4px 0 0;
+}
+.form-required-hint {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 0 0 16px;
+}
+.form-required-asterisk {
+    color: #dc2626;
+    font-weight: 700;
+    margin-left: 2px;
+}
+.form-banner {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    border: 1px solid transparent;
+}
+.form-banner-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+}
+.form-banner-success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #15803d;
+}
 .form-textarea {
     resize: vertical;
     min-height: 80px;

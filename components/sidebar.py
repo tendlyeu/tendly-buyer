@@ -86,7 +86,8 @@ def sidebar_component(active_page="dashboard", chat_service=None, language="en",
 
     # Chat conversations section (only when on chat page)
     if active_page == "chat" and chat_service:
-        conversations = chat_service.get_conversations()
+        sidebar_user_email = (auth or {}).get("email") if auth else None
+        conversations = chat_service.get_conversations(user_email=sidebar_user_email)
         conv_items = []
         for c in conversations:
             is_active = c["id"] == active_conversation_id

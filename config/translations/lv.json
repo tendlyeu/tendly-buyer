@@ -7,7 +7,12 @@
   },
   "sidebar": {
     "new_chat": "Jauna saruna",
-    "no_conversations": "Sarunu vēl nav"
+    "no_conversations": "Sarunu vēl nav",
+    "buyer_tools": "Pircēja rīki",
+    "my_rfps": "Mani RFP melnraksti",
+    "price_benchmarks": "Cenu salīdzinājumi",
+    "buyer_label": "Pircējs",
+    "seller_label": "Pārdevējs"
   },
   "welcome": {
     "title": "Sveiki, esmu jūsu AI iepirkumu speciālists",
@@ -184,7 +189,21 @@
     "role_domain_lead": "Jomas vadītājs",
     "role_procurement_manager": "Iepirkumu vadītājs",
     "role_board": "Valde",
-    "role_domain_specialist": "Jomas speciālists"
+    "role_domain_specialist": "Jomas speciālists",
+    "required_hint": "Lauki, kas atzīmēti ar *, ir obligāti.",
+    "required_field": "Obligāts lauks",
+    "cpv_placeholder": "piem., 72000000 vai 72000000, 72200000",
+    "cpv_format_hint": "Astoņi cipari katram kodam; vairākus atdaliet ar komatiem.",
+    "cpv_help": "Viens vai vairāki 8 ciparu CPV kodi, atdalīti ar komatiem.",
+    "cpv_invalid_codes": "Nederīgi CPV kodi: {codes}. Katrs kods jābūt tieši 8 cipari.",
+    "cpv_required": "CPV kods ir obligāts.",
+    "title_required": "Nosaukums ir obligāts.",
+    "fix_errors_above": "Lūdzu, izlabojiet augšā norādītās kļūdas un mēģiniet vēlreiz.",
+    "upload_error_bad_extension": "Faila tips nav atļauts. Izmantojiet PDF, DOCX, XLSX vai citus atbalstītus formātus.",
+    "upload_error_too_large": "Fails pārāk liels. Maksimālais izmērs ir 10 MB.",
+    "upload_error_empty": "Fails ir tukšs.",
+    "upload_error_failed": "Augšupielāde neizdevās. Lūdzu, mēģiniet vēlreiz.",
+    "no_documents_to_review": "Lai palaistu AI pārskatīšanu, augšupielādējiet vismaz vienu dokumentu."
   },
   "create_plan": {
     "created": "Izveidots",
@@ -206,5 +225,60 @@
   },
   "documents": {
     "file_label": "Fails (PDF, DOCX, XLSX, TXT, CSV — līdz 10 MB)"
+  },
+  "nav": {
+    "dashboard": "Pārskats",
+    "procurements": "Iepirkumi",
+    "documents": "Dokumenti",
+    "registry": "Reģistrs",
+    "chat": "AI saruna",
+    "team": "Komanda"
+  },
+  "dashboard": {
+    "page_title": "Pārskats — Tendly Pircējs",
+    "title": "Pārskats",
+    "subtitle": "Jūsu iepirkumu darbības pārskats",
+    "active_plans": "Aktīvie plāni",
+    "pending_approval": "Gaida apstiprinājumu",
+    "completed": "Pabeigti",
+    "documents": "Dokumenti",
+    "recent_plans": "Nesenie iepirkumu plāni",
+    "view_all": "Skatīt visus",
+    "no_plans": "Vēl nav iepirkumu plānu",
+    "create_first": "Izveidojiet savu pirmo iepirkumu plānu",
+    "quick_actions": "Ātrās darbības",
+    "new_procurement": "Jauns iepirkums",
+    "ask_ai": "Jautāt AI",
+    "browse_registry": "Pārlūkot reģistru"
+  },
+  "team": {
+    "page_title": "Komanda — Tendly Pircējs",
+    "title": "Komanda",
+    "subtitle": "Pārvaldiet komandas piekļuvi",
+    "empty": "Komandā vēl nav dalībnieku",
+    "coming_soon": "Drīzumā",
+    "coming_soon_title": "Komandas pārvaldība drīz pieejama",
+    "coming_soon_body": "Mēs strādājam, lai sniegtu jums iespēju uzaicināt komandas dalībniekus, piešķirt lomas un sadarboties iepirkumos.",
+    "add_member": "Pievienot dalībnieku",
+    "add": "Pievienot",
+    "members": "Dalībnieki"
+  },
+  "review": {
+    "title": "AI dokumentu pārskats",
+    "run_review": "Sākt AI pārskatu",
+    "rerun_review": "Atkārtot pārskatu",
+    "view_review": "Skatīt pārskatu",
+    "analyzing": "Analizē dokumentus...",
+    "quality_score": "Kvalitātes vērtējums",
+    "completeness": "Pilnīgums",
+    "compliance": "Atbilstība",
+    "clarity": "Skaidrība",
+    "issues": "Problēmas",
+    "missing": "Trūkst",
+    "suggestions": "Ieteikumi",
+    "no_documents": "Lai palaistu AI pārskatu, augšupielādējiet vismaz vienu dokumentu.",
+    "summary": "Kopsavilkums",
+    "reviewed_at": "Pārskatīts",
+    "documents_analyzed": "analizēti dokumenti"
   }
 }

@@ -1,10 +1,46 @@
 """Procurement plan routes for Tendly Buyer."""
 
 import json
+import logging
 import os
+import re
+from urllib.parse import quote
 
 from fasthtml.common import to_xml
 from starlette.responses import RedirectResponse, FileResponse, HTMLResponse
+
+logger = logging.getLogger(__name__)
+
+# CPV codes: 8-digit numeric main codes (the optional `-X` check-digit suffix
+# is stripped at this UI layer — keep it simple).
+_CPV_CODE_RE = re.compile(r"^\d{8}$")
+
+
+def _normalise_cpv(raw):
+    """Parse user-entered CPV input (possibly comma-separated) into a
+    canonical CSV string.
+
+    Returns:
+        (normalised: str, errors: list[tuple[str, list[str]]])
+        - On success: ('30192000,30197000', [])
+        - On invalid tokens: (raw_unchanged, [('invalid', ['bad1', 'bad2'])])
+        - On empty input: ('', [])
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return "", []
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    bad = [p for p in parts if not _CPV_CODE_RE.match(p)]
+    if bad:
+        return raw, [("invalid", bad)]
+    # Dedupe while preserving order
+    seen = set()
+    ordered = []
+    for p in parts:
+        if p not in seen:
+            seen.add(p)
+            ordered.append(p)
+    return ",".join(ordered), []
 
 from components.layout import buyer_page
 from components.procurements.plan_list import (
@@ -46,6 +82,7 @@ def register_procurement_routes(rt, chat_service):
     @require_auth
     async def post(request):
         form = await request.form()
+        language = get_language_from_request(request)
         auth = get_auth_from_request(request)
         user_email = auth.get("email") if auth else None
 
@@ -63,7 +100,52 @@ def register_procurement_routes(rt, chat_service):
         except (json.JSONDecodeError, TypeError):
             requirements = []
 
-        # Build metadata_json with the new structured data
+        # ---- Validation ----
+        # Maarius's bug: CPV with commas raised a confusing error and there
+        # was no clear required-fields signaling. Validate explicitly and
+        # re-render the form with inline error messages on failure.
+        title = (form.get("title") or "").strip()
+        cpv_raw = form.get("cpv_code", "")
+        cpv_norm, cpv_errors = _normalise_cpv(cpv_raw)
+
+        errors = {}
+        if not title:
+            errors["title"] = "title_required"
+        if not cpv_raw.strip():
+            errors["cpv_code"] = "cpv_required"
+        elif cpv_errors:
+            errors["cpv_code"] = "cpv_invalid_codes"
+
+        if errors:
+            # Re-render new-plan form with submitted values + inline errors
+            plan_draft = {
+                "title": title,
+                "description": form.get("description", ""),
+                "category": form.get("category", ""),
+                "cpv_code": cpv_raw,
+                "estimated_value": form.get("estimated_value", ""),
+                "fiscal_year": form.get("fiscal_year", ""),
+                "procurement_method": form.get("procurement_method", ""),
+                "metadata_json": {
+                    "submission_deadline": submission_deadline,
+                    "evaluation_criteria": evaluation_criteria,
+                    "requirements": requirements,
+                },
+            }
+            content = procurement_new_page(language=language, plan=plan_draft, errors=errors)
+            return buyer_page(content, language=language, auth=auth,
+                              active_page="procurements", chat_service=chat_service,
+                              title_key="procurements.new_title")
+
+        # ---- Build metadata + persist ----
+        # Storage strategy (DB column is VARCHAR(20), can't hold multiple
+        # 8-digit codes + commas): the FULL list lives in
+        # `metadata_json["cpv_codes"]` (source of truth). The legacy
+        # `cpv_code` column gets only the FIRST code so back-compat reads
+        # (other services, exports) still get a valid 8-digit value.
+        cpv_list = cpv_norm.split(",") if cpv_norm else []
+        cpv_first = cpv_list[0] if cpv_list else ""
+
         metadata = {}
         if submission_deadline:
             metadata["submission_deadline"] = submission_deadline
@@ -71,13 +153,15 @@ def register_procurement_routes(rt, chat_service):
             metadata["evaluation_criteria"] = evaluation_criteria
         if requirements:
             metadata["requirements"] = requirements
+        if cpv_list:
+            metadata["cpv_codes"] = cpv_list
 
         plan = create_plan(
-            title=form.get("title", "Untitled"),
+            title=title,
             description=form.get("description", ""),
             category=form.get("category", "muu"),
             estimated_value=form.get("estimated_value") or None,
-            cpv_code=form.get("cpv_code", ""),
+            cpv_code=cpv_first,
             fiscal_year=int(form.get("fiscal_year") or 2026),
             procurement_method=form.get("procurement_method", "open"),
             created_by_email=user_email,
@@ -100,7 +184,9 @@ def register_procurement_routes(rt, chat_service):
             return RedirectResponse("/procurements", status_code=302)
         steps = get_steps(plan_id)
         docs = list_documents(procurement_plan_id=plan_id)
-        content = procurement_detail_page(plan=plan, steps=steps, documents=docs, language=language)
+        upload_error = request.query_params.get("upload_error", "")
+        content = procurement_detail_page(plan=plan, steps=steps, documents=docs, language=language,
+                                          upload_error=upload_error)
         return buyer_page(content, language=language, auth=auth, active_page="procurements", chat_service=chat_service, title_key="procurements.page_title", include_canvas=True)
 
     @rt("/procurements/{plan_id}/edit")
@@ -138,6 +224,47 @@ def register_procurement_routes(rt, chat_service):
             requirements = json.loads(form.get("requirements_json", "[]"))
         except (json.JSONDecodeError, TypeError):
             requirements = []
+
+        # Validate (edit-specific: title still required; CPV is soft-required
+        # so existing plans without one don't break, but if provided it must
+        # be a valid 8-digit code or comma list).
+        title = (form.get("title") or "").strip()
+        cpv_raw = form.get("cpv_code", "")
+        cpv_norm, cpv_errors = _normalise_cpv(cpv_raw)
+
+        errors = {}
+        if not title:
+            errors["title"] = "title_required"
+        if cpv_errors:
+            errors["cpv_code"] = "cpv_invalid_codes"
+
+        if errors:
+            existing = get_plan(plan_id) or {}
+            plan_draft = dict(existing)
+            plan_draft.update({
+                "title": title,
+                "description": form.get("description", ""),
+                "category": form.get("category", ""),
+                "cpv_code": cpv_raw,
+                "estimated_value": form.get("estimated_value", ""),
+                "fiscal_year": form.get("fiscal_year", ""),
+                "procurement_method": form.get("procurement_method", ""),
+                "metadata_json": {
+                    "submission_deadline": form.get("submission_deadline", ""),
+                    "evaluation_criteria": evaluation_criteria,
+                    "requirements": requirements,
+                },
+            })
+            content = procurement_new_page(language=language, plan=plan_draft, errors=errors)
+            return buyer_page(content, language=language, auth=auth,
+                              active_page="procurements", chat_service=chat_service,
+                              title_key="procurements.page_title")
+
+        # Storage: full list in metadata_json["cpv_codes"], first code in
+        # legacy cpv_code column (VARCHAR(20) can't hold multiple).
+        cpv_list = cpv_norm.split(",") if cpv_norm else []
+        cpv_first = cpv_list[0] if cpv_list else ""
+
         metadata = {}
         if form.get("submission_deadline"):
             metadata["submission_deadline"] = form.get("submission_deadline")
@@ -145,15 +272,17 @@ def register_procurement_routes(rt, chat_service):
             metadata["evaluation_criteria"] = evaluation_criteria
         if requirements:
             metadata["requirements"] = requirements
+        if cpv_list:
+            metadata["cpv_codes"] = cpv_list
 
         from services.procurement_service import update_plan
         update_plan(
             plan_id,
-            title=form.get("title", "Untitled"),
+            title=title,
             description=form.get("description", ""),
             category=form.get("category", "muu"),
             estimated_value=float(form.get("estimated_value") or 0) or None,
-            cpv_code=form.get("cpv_code", ""),
+            cpv_code=cpv_first,
             fiscal_year=int(form.get("fiscal_year") or 2026),
             procurement_method=form.get("procurement_method", "open"),
             metadata_json=metadata or {},
@@ -217,10 +346,17 @@ def register_procurement_routes(rt, chat_service):
                     organization_id=user_email,
                     file_path=result["file_path"],
                 )
-            except ValueError as e:
-                # Validation error (bad extension, too large, empty) -
-                # redirect back with the plan page showing current docs
-                pass
+            except Exception as e:
+                # Surface the failure to the user instead of silently dropping
+                # the upload (Maarius-class bug: "I uploaded my doc but it
+                # never appeared"). Use a stable error code in the redirect
+                # so procurement_detail_page can render a translated banner.
+                code = getattr(e, "code", None) or "failed"
+                logger.warning("Document upload failed for plan %s: %s", plan_id, e)
+                return RedirectResponse(
+                    f"/procurements/{plan_id}?upload_error={quote(code)}",
+                    status_code=303,
+                )
         else:
             # No file selected - still store as a text-only document
             add_document(
@@ -321,7 +457,10 @@ def register_procurement_routes(rt, chat_service):
         if not result.get("success"):
             error = result.get("error", "")
             if error in ("no_documents", "no_content"):
-                msg = t("review.no_documents", language)
+                # Prefer the more actionable, translated message; fall back
+                # to the legacy `review.no_documents` key if newer key absent.
+                msg = (t("procurements.no_documents_to_review", language)
+                       or t("review.no_documents", language))
             else:
                 msg = error or t("chat.error", language)
             error_html = Div(

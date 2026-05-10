@@ -7,7 +7,12 @@
   },
   "sidebar": {
     "new_chat": "Naujas pokalbis",
-    "no_conversations": "Pokalbių dar nėra"
+    "no_conversations": "Pokalbių dar nėra",
+    "buyer_tools": "Pirkėjo įrankiai",
+    "my_rfps": "Mano RFP juodraščiai",
+    "price_benchmarks": "Kainų palyginimai",
+    "buyer_label": "Pirkėjas",
+    "seller_label": "Pardavėjas"
   },
   "welcome": {
     "title": "Sveiki, esu jūsų AI viešųjų pirkimų specialistas",
@@ -184,7 +189,21 @@
     "role_domain_lead": "Srities vadovas",
     "role_procurement_manager": "Pirkimų vadovas",
     "role_board": "Valdyba",
-    "role_domain_specialist": "Srities specialistas"
+    "role_domain_specialist": "Srities specialistas",
+    "required_hint": "Laukai, pažymėti *, yra privalomi.",
+    "required_field": "Privalomas laukas",
+    "cpv_placeholder": "pvz., 72000000 arba 72000000, 72200000",
+    "cpv_format_hint": "Aštuoni skaitmenys kiekvienam kodui; kelis atskirkite kableliais.",
+    "cpv_help": "Vienas arba keli 8 skaitmenų CPV kodai, atskirti kableliais.",
+    "cpv_invalid_codes": "Netinkami CPV kodai: {codes}. Kiekvienas kodas turi būti lygiai 8 skaitmenys.",
+    "cpv_required": "CPV kodas yra privalomas.",
+    "title_required": "Pavadinimas yra privalomas.",
+    "fix_errors_above": "Prašome ištaisyti aukščiau nurodytas klaidas ir bandyti dar kartą.",
+    "upload_error_bad_extension": "Failo tipas neleidžiamas. Naudokite PDF, DOCX, XLSX arba kitus palaikomus formatus.",
+    "upload_error_too_large": "Failas per didelis. Maksimalus dydis yra 10 MB.",
+    "upload_error_empty": "Failas tuščias.",
+    "upload_error_failed": "Įkelti nepavyko. Prašome bandyti dar kartą.",
+    "no_documents_to_review": "Norėdami paleisti AI peržiūrą, įkelkite bent vieną dokumentą."
   },
   "create_plan": {
     "created": "Sukurta",
@@ -206,5 +225,60 @@
   },
   "documents": {
     "file_label": "Failas (PDF, DOCX, XLSX, TXT, CSV — iki 10 MB)"
+  },
+  "nav": {
+    "dashboard": "Apžvalga",
+    "procurements": "Pirkimai",
+    "documents": "Dokumentai",
+    "registry": "Registras",
+    "chat": "AI pokalbis",
+    "team": "Komanda"
+  },
+  "dashboard": {
+    "page_title": "Apžvalga — Tendly Pirkėjas",
+    "title": "Apžvalga",
+    "subtitle": "Jūsų pirkimų veiklos apžvalga",
+    "active_plans": "Aktyvūs planai",
+    "pending_approval": "Laukia patvirtinimo",
+    "completed": "Užbaigti",
+    "documents": "Dokumentai",
+    "recent_plans": "Naujausi pirkimo planai",
+    "view_all": "Peržiūrėti visus",
+    "no_plans": "Dar nėra pirkimo planų",
+    "create_first": "Sukurkite savo pirmą pirkimo planą",
+    "quick_actions": "Greiti veiksmai",
+    "new_procurement": "Naujas pirkimas",
+    "ask_ai": "Klausti AI",
+    "browse_registry": "Naršyti registrą"
+  },
+  "team": {
+    "page_title": "Komanda — Tendly Pirkėjas",
+    "title": "Komanda",
+    "subtitle": "Tvarkykite komandos prieigą",
+    "empty": "Komandoje dar nėra narių",
+    "coming_soon": "Netrukus",
+    "coming_soon_title": "Komandos valdymas netrukus bus pasiekiamas",
+    "coming_soon_body": "Dirbame, kad netrukus galėtumėte pakviesti komandos narius, priskirti vaidmenis ir bendradarbiauti vykdant pirkimus.",
+    "add_member": "Pridėti narį",
+    "add": "Pridėti",
+    "members": "Nariai"
+  },
+  "review": {
+    "title": "AI dokumentų peržiūra",
+    "run_review": "Paleisti AI peržiūrą",
+    "rerun_review": "Pakartoti peržiūrą",
+    "view_review": "Peržiūrėti",
+    "analyzing": "Analizuojami dokumentai...",
+    "quality_score": "Kokybės balas",
+    "completeness": "Išsamumas",
+    "compliance": "Atitiktis",
+    "clarity": "Aiškumas",
+    "issues": "Problemos",
+    "missing": "Trūksta",
+    "suggestions": "Pasiūlymai",
+    "no_documents": "Norėdami paleisti AI peržiūrą, įkelkite bent vieną dokumentą.",
+    "summary": "Santrauka",
+    "reviewed_at": "Peržiūrėta",
+    "documents_analyzed": "išanalizuoti dokumentai"
   }
 }

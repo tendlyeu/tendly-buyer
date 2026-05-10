@@ -71,15 +71,23 @@ def t(key: str, language: str = DEFAULT_LANGUAGE, **kwargs) -> str:
 
 
 def get_language_from_request(request) -> str:
-    """Extract language from cookie or query param."""
-    # Check query param first
+    """Extract language with this priority: query param > cookie > Accept-Language > DEFAULT_LANGUAGE."""
+    # 1. Query param (explicit, highest priority)
     lang = request.query_params.get("lang")
     if lang and lang in BETA_LANGUAGES:
         return lang
-    # Check cookie
+    # 2. Cookie (the user has chosen before)
     lang = request.cookies.get(LANGUAGE_COOKIE)
     if lang and lang in BETA_LANGUAGES:
         return lang
+    # 3. Browser Accept-Language (so an Estonian browser visiting for the
+    #    first time gets Estonian, not English).
+    accept = request.headers.get("accept-language", "") or ""
+    for chunk in accept.split(","):
+        code = chunk.split(";")[0].strip().lower().split("-")[0]
+        if code in BETA_LANGUAGES:
+            return code
+    # 4. Hard fallback
     return DEFAULT_LANGUAGE
 
 
@@ -143,5 +151,9 @@ def get_js_translations(language: str) -> dict:
         "upgrade.feature_pipeline": t("upgrade.feature_pipeline", language),
         "upgrade.view_plans": t("upgrade.view_plans", language),
         "upgrade.dismiss": t("upgrade.dismiss", language),
+        # Procurement form (CPV multi-code validation, required-field UX)
+        "procurements.cpv_invalid_codes": t("procurements.cpv_invalid_codes", language),
+        "procurements.cpv_required": t("procurements.cpv_required", language),
+        "procurements.title_required": t("procurements.title_required", language),
     }
     return js_keys

@@ -138,4 +138,6 @@ register_routes(app, chat_service)
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
+    # Default port 5004 (5002 is reserved for tendly-agent-chat in the
+    # workspace). Override via PORT env var if needed.
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5004)))

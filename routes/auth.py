@@ -122,8 +122,12 @@ def register_auth_routes(rt, chat_service):
 
     @rt("/logout")
     def get(request):
-        request.session.pop("auth", None)
-        return RedirectResponse(url="/", status_code=302)
+        # Clear the entire session (not just `auth`) so any future per-user
+        # keys don't leak across logins. Redirect to /login (not /) so the
+        # next user lands on a clean page where the sidebar doesn't try to
+        # render any per-user state from the prior session.
+        request.session.clear()
+        return RedirectResponse(url="/login", status_code=302)
 
 
 def _login_page(language, error=""):

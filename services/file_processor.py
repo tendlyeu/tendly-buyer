@@ -1,10 +1,21 @@
 """File upload handler and text extraction service for procurement documents."""
 
+import logging
 import os
 import uuid
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+
+
+# Stable error codes used by route handlers to look up translated messages.
+# Keep these in sync with `procurements.upload_error_*` translation keys.
+class UploadError(ValueError):
+    def __init__(self, code: str, message: str = ""):
+        self.code = code
+        super().__init__(message or code)
 
 
 class FileProcessor:
@@ -36,9 +47,9 @@ class FileProcessor:
 
         # Validate extension
         if ext not in self.ALLOWED_EXTENSIONS:
-            raise ValueError(
-                f"File type '{ext}' is not allowed. "
-                f"Supported: {', '.join(sorted(self.ALLOWED_EXTENSIONS))}"
+            raise UploadError(
+                "bad_extension",
+                f"File type '{ext}' is not allowed. Supported: {', '.join(sorted(self.ALLOWED_EXTENSIONS))}"
             )
 
         # Read file content into memory to check size
@@ -46,13 +57,13 @@ class FileProcessor:
         file_size = len(content)
 
         if file_size > self.MAX_FILE_SIZE:
-            raise ValueError(
-                f"File size ({file_size / (1024*1024):.1f} MB) exceeds "
-                f"maximum allowed ({self.MAX_FILE_SIZE / (1024*1024):.0f} MB)."
+            raise UploadError(
+                "too_large",
+                f"File size ({file_size / (1024*1024):.1f} MB) exceeds maximum allowed ({self.MAX_FILE_SIZE / (1024*1024):.0f} MB)."
             )
 
         if file_size == 0:
-            raise ValueError("Uploaded file is empty.")
+            raise UploadError("empty", "Uploaded file is empty.")
 
         # Create directory for this plan
         plan_dir = os.path.join(UPLOADS_DIR, plan_id)
@@ -69,12 +80,14 @@ class FileProcessor:
         # Determine MIME type
         mime_type = self.MIME_TYPES.get(ext, "application/octet-stream")
 
-        # Extract text
+        # Extract text. Failure here is non-fatal — the file is already on
+        # disk and the user can re-upload or the AI review can fall back to
+        # a "no extracted text" branch.
         content_text = ""
         try:
             content_text = self._extract_text(file_path, ext)
         except Exception as e:
-            print(f"Warning: text extraction failed for {filename}: {e}")
+            logger.warning("Text extraction failed for %s: %s", filename, e)
 
         return {
             "file_path": file_path,
@@ -146,5 +159,5 @@ class FileProcessor:
                 os.remove(file_path)
                 return True
         except OSError as e:
-            print(f"Warning: could not delete file {file_path}: {e}")
+            logger.warning("Could not delete file %s: %s", file_path, e)
         return False

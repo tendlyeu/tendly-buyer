@@ -116,7 +116,21 @@
     "role_domain_lead": "Domain Lead",
     "role_procurement_manager": "Procurement Manager",
     "role_board": "Board",
-    "role_domain_specialist": "Domain Specialist"
+    "role_domain_specialist": "Domain Specialist",
+    "required_hint": "Fields marked with * are required.",
+    "required_field": "Required field",
+    "cpv_placeholder": "e.g. 72000000 or 72000000, 72200000",
+    "cpv_format_hint": "Eight digits per code; separate multiple codes with commas.",
+    "cpv_help": "One or more 8-digit CPV codes separated by commas.",
+    "cpv_invalid_codes": "Invalid CPV code(s): {codes}. Each code must be exactly 8 digits.",
+    "cpv_required": "CPV code is required.",
+    "title_required": "Title is required.",
+    "fix_errors_above": "Please correct the errors above and try again.",
+    "upload_error_bad_extension": "File type not allowed. Use PDF, DOCX, XLSX, or other supported formats.",
+    "upload_error_too_large": "File too large. Maximum size is 10 MB.",
+    "upload_error_empty": "The file is empty.",
+    "upload_error_failed": "Upload failed. Please try again.",
+    "no_documents_to_review": "Upload at least one document to run the AI review."
   },
   "documents": {
     "page_title": "Documents - Tendly Buyer",

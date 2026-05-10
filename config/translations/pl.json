@@ -7,7 +7,12 @@
   },
   "sidebar": {
     "new_chat": "Nowy czat",
-    "no_conversations": "Brak rozmów"
+    "no_conversations": "Brak rozmów",
+    "buyer_tools": "Narzędzia kupującego",
+    "my_rfps": "Moje szkice RFP",
+    "price_benchmarks": "Porównania cen",
+    "buyer_label": "Kupujący",
+    "seller_label": "Sprzedawca"
   },
   "welcome": {
     "title": "Witaj, jestem Twoim AI specjalistą ds. zamówień",
@@ -184,7 +189,21 @@
     "role_domain_lead": "Kierownik dziedziny",
     "role_procurement_manager": "Kierownik ds. zamówień",
     "role_board": "Zarząd",
-    "role_domain_specialist": "Specjalista dziedziny"
+    "role_domain_specialist": "Specjalista dziedziny",
+    "required_hint": "Pola oznaczone * są wymagane.",
+    "required_field": "Pole wymagane",
+    "cpv_placeholder": "np. 72000000 lub 72000000, 72200000",
+    "cpv_format_hint": "Osiem cyfr na kod; oddziel wiele kodów przecinkami.",
+    "cpv_help": "Jeden lub więcej 8-cyfrowych kodów CPV oddzielonych przecinkami.",
+    "cpv_invalid_codes": "Nieprawidłowe kody CPV: {codes}. Każdy kod musi mieć dokładnie 8 cyfr.",
+    "cpv_required": "Kod CPV jest wymagany.",
+    "title_required": "Tytuł jest wymagany.",
+    "fix_errors_above": "Popraw błędy powyżej i spróbuj ponownie.",
+    "upload_error_bad_extension": "Typ pliku niedozwolony. Użyj PDF, DOCX, XLSX lub innych obsługiwanych formatów.",
+    "upload_error_too_large": "Plik za duży. Maksymalny rozmiar to 10 MB.",
+    "upload_error_empty": "Plik jest pusty.",
+    "upload_error_failed": "Przesyłanie nie powiodło się. Spróbuj ponownie.",
+    "no_documents_to_review": "Aby uruchomić przegląd AI, prześlij co najmniej jeden dokument."
   },
   "create_plan": {
     "created": "Utworzono",
@@ -206,5 +225,60 @@
   },
   "documents": {
     "file_label": "Plik (PDF, DOCX, XLSX, TXT, CSV — do 10 MB)"
+  },
+  "nav": {
+    "dashboard": "Pulpit",
+    "procurements": "Zamówienia",
+    "documents": "Dokumenty",
+    "registry": "Rejestr",
+    "chat": "Czat AI",
+    "team": "Zespół"
+  },
+  "dashboard": {
+    "page_title": "Pulpit — Tendly Kupujący",
+    "title": "Pulpit",
+    "subtitle": "Przegląd Twojej działalności w zamówieniach",
+    "active_plans": "Aktywne plany",
+    "pending_approval": "Oczekuje na zatwierdzenie",
+    "completed": "Zakończone",
+    "documents": "Dokumenty",
+    "recent_plans": "Ostatnie plany zamówień",
+    "view_all": "Zobacz wszystkie",
+    "no_plans": "Brak planów zamówień",
+    "create_first": "Utwórz swój pierwszy plan zamówienia",
+    "quick_actions": "Szybkie akcje",
+    "new_procurement": "Nowe zamówienie",
+    "ask_ai": "Zapytaj AI",
+    "browse_registry": "Przeglądaj rejestr"
+  },
+  "team": {
+    "page_title": "Zespół — Tendly Kupujący",
+    "title": "Zespół",
+    "subtitle": "Zarządzaj dostępem zespołu",
+    "empty": "Brak członków zespołu",
+    "coming_soon": "Wkrótce",
+    "coming_soon_title": "Zarządzanie zespołem wkrótce dostępne",
+    "coming_soon_body": "Pracujemy nad funkcją zapraszania członków zespołu, przypisywania ról i wspólnej pracy nad zamówieniami.",
+    "add_member": "Dodaj członka",
+    "add": "Dodaj",
+    "members": "Członkowie"
+  },
+  "review": {
+    "title": "Przegląd dokumentów AI",
+    "run_review": "Uruchom przegląd AI",
+    "rerun_review": "Powtórz przegląd",
+    "view_review": "Zobacz przegląd",
+    "analyzing": "Analizowanie dokumentów...",
+    "quality_score": "Ocena jakości",
+    "completeness": "Kompletność",
+    "compliance": "Zgodność",
+    "clarity": "Przejrzystość",
+    "issues": "Problemy",
+    "missing": "Brakujące",
+    "suggestions": "Sugestie",
+    "no_documents": "Aby uruchomić przegląd AI, prześlij co najmniej jeden dokument.",
+    "summary": "Podsumowanie",
+    "reviewed_at": "Przejrzane",
+    "documents_analyzed": "przeanalizowane dokumenty"
   }
 }

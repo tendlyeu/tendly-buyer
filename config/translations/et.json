@@ -16,7 +16,12 @@
   },
   "sidebar": {
     "new_chat": "Uus vestlus",
-    "no_conversations": "Vestlusi pole veel"
+    "no_conversations": "Vestlusi pole veel",
+    "buyer_tools": "Hankija tööriistad",
+    "my_rfps": "Minu RFP mustandid",
+    "price_benchmarks": "Hinnavõrdlused",
+    "buyer_label": "Hankija",
+    "seller_label": "Müüja"
   },
   "dashboard": {
     "page_title": "Ülevaade - Tendly Hankija",
@@ -111,7 +116,21 @@
     "role_domain_lead": "Valdkonna juht",
     "role_procurement_manager": "Hankejuht",
     "role_board": "Juhatus",
-    "role_domain_specialist": "Valdkonna spetsialist"
+    "role_domain_specialist": "Valdkonna spetsialist",
+    "required_hint": "Tärniga (*) tähistatud väljad on kohustuslikud.",
+    "required_field": "Kohustuslik väli",
+    "cpv_placeholder": "nt 72000000 või 72000000, 72200000",
+    "cpv_format_hint": "Iga kood on 8 numbrit; eralda mitu koma abil.",
+    "cpv_help": "Üks või mitu 8-kohalist CPV koodi, eraldatud komaga.",
+    "cpv_invalid_codes": "Vigased CPV koodid: {codes}. Iga kood peab olema täpselt 8 numbrit.",
+    "cpv_required": "CPV kood on kohustuslik.",
+    "title_required": "Pealkiri on kohustuslik.",
+    "fix_errors_above": "Palun paranda ülaltoodud vead ja proovi uuesti.",
+    "upload_error_bad_extension": "Failitüüp pole lubatud. Kasuta PDF, DOCX, XLSX või muid toetatud vorminguid.",
+    "upload_error_too_large": "Fail on liiga suur. Maksimaalne suurus on 10 MB.",
+    "upload_error_empty": "Fail on tühi.",
+    "upload_error_failed": "Üleslaadimine ebaõnnestus. Palun proovi uuesti.",
+    "no_documents_to_review": "AI ülevaatuse käivitamiseks lae üles vähemalt üks dokument."
   },
   "documents": {
     "page_title": "Dokumendid - Tendly Hankija",

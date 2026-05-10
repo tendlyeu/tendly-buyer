@@ -717,6 +717,12 @@ class TendlyChatService:
             q = session.query(ChatContext)
             if user_email:
                 q = q.filter(ChatContext.user_email == user_email)
+            else:
+                # Anonymous callers must NOT see other users' history.
+                # Without this, a missing `user_email` arg returns every row
+                # across all tenants — the bug behind Maarius's "previous
+                # questions" leak.
+                q = q.filter((ChatContext.user_email == None) | (ChatContext.user_email == ""))
             q = q.order_by(ChatContext.created_at.desc())
             result = []
             for ctx in q.all():
@@ -732,8 +738,12 @@ class TendlyChatService:
             session.close()
 
     def get_conversation(self, conversation_id: str, user_email: Optional[str] = None) -> Optional[Dict]:
-        """Fetch a conversation. If user_email is given, returns None unless
-        the conversation belongs to that user OR has no owner (anonymous)."""
+        """Fetch a conversation with strict tenant isolation:
+        - Logged-in caller: must own the conversation. NULL-owner (anonymous)
+          rows are NOT readable — a previous anon session must not leak across
+          a login on the same device.
+        - Anonymous caller: only NULL-owner conversations.
+        """
         session = get_tendly_session()
         try:
             ctx = session.query(ChatContext).filter(
@@ -741,11 +751,12 @@ class TendlyChatService:
             ).first()
             if ctx is None:
                 return None
-            # Tenant check: a logged-in caller can only read their own
-            # conversations. Anonymous (orphan) conversations have user_email
-            # blank/null and are accessible to whoever knows the UUID.
-            if user_email and ctx.user_email and ctx.user_email != user_email:
-                return None
+            if user_email:
+                if not ctx.user_email or ctx.user_email != user_email:
+                    return None
+            else:
+                if ctx.user_email:
+                    return None
             return {
                 "id": ctx.conversation_id,
                 "title": ctx.title or "New conversation",
@@ -756,21 +767,18 @@ class TendlyChatService:
             session.close()
 
     def delete_conversation(self, conversation_id: str, user_email: Optional[str] = None) -> bool:
-        """Delete a conversation. With user_email, only deletes when owned
-        by that user (or unowned)."""
+        """Delete a conversation with strict ownership: a logged-in user can
+        only delete their own. Anonymous callers can only delete NULL-owner
+        rows."""
         session = get_tendly_session()
         try:
             q = session.query(ChatContext).filter(
                 ChatContext.conversation_id == conversation_id
             )
             if user_email:
-                # Owner OR unowned (legacy / anonymous)
-                from sqlalchemy import or_
-                q = q.filter(or_(
-                    ChatContext.user_email == user_email,
-                    ChatContext.user_email == None,
-                    ChatContext.user_email == "",
-                ))
+                q = q.filter(ChatContext.user_email == user_email)
+            else:
+                q = q.filter((ChatContext.user_email == None) | (ChatContext.user_email == ""))
             deleted = q.delete(synchronize_session='fetch')
             session.commit()
             return deleted > 0

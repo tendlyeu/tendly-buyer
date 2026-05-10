@@ -54,6 +54,17 @@ DOCUMENT_TYPES = [
     ("other", "Other / Muu"),
 ]
 
+def _required_label(text, fr, language="en", required=False):
+    """Form label with optional red asterisk for required fields."""
+    children = [text]
+    if required:
+        children.append(
+            Span(" *", cls="form-required-asterisk",
+                 title=t("procurements.required_field", language))
+        )
+    return Label(*children, fr=fr, cls="form-label")
+
+
 # Inline JS for dynamic form rows (evaluation criteria + requirements).
 # All content is built from DOM API calls and data-attribute values only.
 _DYNAMIC_FORM_JS = Script("""
@@ -203,11 +214,52 @@ _DYNAMIC_FORM_JS = Script("""
         hydrateFromHidden();
     }
 
-    // Re-serialize on form submit
+    // ---- CPV multi-code validation (8-digit codes, comma-separated) ----
+    // The user reported confusion when pasting `30192000, 30197000` and
+    // hitting an unclear error. We accept comma-separated 8-digit codes
+    // and surface invalid tokens inline with a red border + message.
+    window.validateCpv = function() {
+        var inp = document.getElementById('cpv_code');
+        var err = document.getElementById('cpv_code_error');
+        if (!inp) return true;
+        var raw = (inp.value || '').trim();
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        inp.classList.remove('form-input-error');
+        if (!raw) return true;  // empty handled by HTML5 `required`
+        var parts = raw.split(',').map(function(s){return s.trim();}).filter(Boolean);
+        var bad = parts.filter(function(p){ return !/^\\d{8}$/.test(p); });
+        if (bad.length) {
+            var tmpl = (window.__LANG__ && window.__LANG__['procurements.cpv_invalid_codes'])
+                || 'Invalid CPV code(s): {codes}. Each code must be exactly 8 digits.';
+            if (err) {
+                err.textContent = tmpl.replace('{codes}', bad.join(', '));
+                err.style.display = '';
+            }
+            inp.classList.add('form-input-error');
+            return false;
+        }
+        // Re-normalise: dedupe, comma-join with no spaces, so the persisted
+        // value has a canonical shape regardless of how the user typed it.
+        var seen = {}, ordered = [];
+        parts.forEach(function(p){ if (!seen[p]) { seen[p] = 1; ordered.push(p); } });
+        inp.value = ordered.join(',');
+        return true;
+    };
+    document.addEventListener('blur', function(e){
+        if (e.target && e.target.id === 'cpv_code') window.validateCpv();
+    }, true);
+
+    // Re-serialize on form submit AND validate CPV before allowing submit.
     document.addEventListener('submit', function(e) {
         if (e.target.classList.contains('procurement-form')) {
             serializeCriteria();
             serializeRequirements();
+            if (!window.validateCpv()) {
+                e.preventDefault();
+                var inp = document.getElementById('cpv_code');
+                if (inp) inp.focus();
+                return false;
+            }
         }
     });
 
@@ -257,11 +309,24 @@ def procurement_list_page(plans=None, language="en"):
     return Div(filter_bar, content, cls="page-content")
 
 
-def procurement_new_page(language="en", plan=None):
-    """New / edit procurement plan form. When `plan` is given, fields are
-    pre-populated and the form posts to the edit endpoint."""
-    is_edit = bool(plan)
+def procurement_new_page(language="en", plan=None, errors=None):
+    """New / edit procurement plan form.
+
+    Args:
+        language: i18n language code.
+        plan: existing plan dict for edit mode (None = create).
+        errors: optional dict of {field_name: translation_key_for_error_msg}.
+            When set, the matching input gets `form-input-error` class and
+            an error message renders below it. Used for server-side validation
+            re-render after a failed POST.
+    """
     plan = plan or {}
+    errors = errors or {}
+    # Edit mode is gated on the plan having a real DB id. A "plan_draft"
+    # passed in for server-side validation re-render has all the form values
+    # but NO id — that should still render as the create form (POST to
+    # /procurements, not /procurements/{id}/edit).
+    is_edit = bool(plan.get("id"))
     meta = plan.get("metadata_json") or {}
     if isinstance(meta, str):
         try:
@@ -306,6 +371,16 @@ def procurement_new_page(language="en", plan=None):
         import json as _json
         initial_requirements_json = _json.dumps(meta["requirements"])
 
+    # CPV display value: full list lives in metadata_json["cpv_codes"]
+    # (because the legacy `cpv_code` column is VARCHAR(20) and can't hold
+    # multiple comma-separated 8-digit codes). When editing, prefer the
+    # metadata list; fall back to the column for legacy plans.
+    initial_cpv = ""
+    if meta.get("cpv_codes"):
+        initial_cpv = ", ".join(meta["cpv_codes"])
+    elif plan.get("cpv_code"):
+        initial_cpv = plan.get("cpv_code", "")
+
     page_title = (
         (t("procurements.edit_title", language) or "Edit Plan") if is_edit
         else t("procurements.new_title", language)
@@ -317,19 +392,55 @@ def procurement_new_page(language="en", plan=None):
     form_action = f"/procurements/{plan['id']}/edit" if is_edit else "/procurements"
     cancel_target = f"/procurements/{plan['id']}" if is_edit else "/procurements"
 
+    # Compute today's ISO date for the deadline `min` constraint (server-side
+    # so it's stable per-request; HTML5 will reject any earlier date).
+    from datetime import date as _date
+    _today_iso = _date.today().isoformat()
+
+    # Helpers for per-field error rendering ----------------------------------
+    def _err_msg(field):
+        key = errors.get(field)
+        if not key:
+            return None
+        return P(t(f"procurements.{key}", language), id=f"{field}_error",
+                 cls="form-error", role="alert")
+
+    def _input_cls(field, base="form-input"):
+        return f"{base} form-input-error" if errors.get(field) else base
+
+    # Top-of-form banner: "please fix the errors above" appears only after a
+    # failed submit (errors dict is non-empty).
+    error_banner = (
+        Div(
+            t("procurements.fix_errors_above", language),
+            cls="form-banner form-banner-error",
+        )
+        if errors else None
+    )
+
     return Div(
         Div(
             H1(page_title, style="font-size:22px;font-weight:700;color:#111827;margin:0;"),
             cls="page-header",
         ),
         Form(
+            error_banner,
+            # Required-fields hint (always visible to demystify the form for
+            # users who asked "which fields are mandatory?").
+            P(
+                Span("*", cls="form-required-asterisk"),
+                " " + t("procurements.required_hint", language),
+                cls="form-required-hint",
+            ),
             # Title
             Div(
-                Label(t("procurements.field_title", language), fr="title", cls="form-label"),
+                _required_label(t("procurements.field_title", language), "title", language, required=True),
                 Input(name="title", id="title", type="text",
                       value=plan.get("title", ""),
                       placeholder=t("procurements.title_placeholder", language),
-                      cls="form-input", required=True),
+                      cls=_input_cls("title"), required=True,
+                      aria_describedby=("title_error" if errors.get("title") else None)),
+                _err_msg("title"),
                 cls="form-group",
             ),
             # Description
@@ -351,6 +462,7 @@ def procurement_new_page(language="en", plan=None):
                 Div(
                     Label(t("procurements.field_estimated_value", language), fr="estimated_value", cls="form-label"),
                     Input(name="estimated_value", id="estimated_value", type="number", step="0.01",
+                          min="0",
                           value=initial_value, placeholder="0.00", cls="form-input"),
                     cls="form-group",
                 ),
@@ -359,15 +471,26 @@ def procurement_new_page(language="en", plan=None):
             # CPV Code + Fiscal Year row
             Div(
                 Div(
-                    Label(t("procurements.field_cpv_code", language), fr="cpv_code", cls="form-label"),
+                    _required_label(t("procurements.field_cpv_code", language), "cpv_code", language, required=True),
                     Input(name="cpv_code", id="cpv_code", type="text",
-                          value=plan.get("cpv_code", ""),
-                          placeholder="e.g. 72000000", cls="form-input"),
+                          value=initial_cpv,
+                          placeholder=t("procurements.cpv_placeholder", language),
+                          cls=_input_cls("cpv_code"),
+                          # Pattern: one or more 8-digit codes, comma-separated.
+                          # `pattern` triggers a native HTML5 validation tooltip on submit.
+                          pattern=r"^\s*\d{8}(\s*,\s*\d{8})*\s*$",
+                          title=t("procurements.cpv_format_hint", language),
+                          required=(not is_edit),  # required on create, soft on edit (pre-existing rows)
+                          aria_describedby=("cpv_code_help cpv_code_error" if errors.get("cpv_code") else "cpv_code_help")),
+                    P(t("procurements.cpv_help", language), id="cpv_code_help", cls="form-help"),
+                    _err_msg("cpv_code") or P("", id="cpv_code_error", cls="form-error",
+                                              style="display:none;", role="alert"),
                     cls="form-group",
                 ),
                 Div(
                     Label(t("procurements.field_fiscal_year", language), fr="fiscal_year", cls="form-label"),
                     Input(name="fiscal_year", id="fiscal_year", type="number",
+                          min="2020", max="2050",
                           value=str(plan.get("fiscal_year") or 2026),
                           cls="form-input"),
                     cls="form-group",
@@ -387,6 +510,10 @@ def procurement_new_page(language="en", plan=None):
                 Div(
                     Label(t("procurements.deadline_label", language), fr="submission_deadline", cls="form-label"),
                     Input(name="submission_deadline", id="submission_deadline", type="date",
+                          # Server-injected min so users can't pick a past date in fresh plans.
+                          # We DON'T enforce min on edit (initial_deadline already set) — but
+                          # for the create flow this prevents nonsense like 2020 deadlines.
+                          min=(_today_iso if not is_edit else None),
                           value=initial_deadline, cls="form-input"),
                     cls="form-group",
                 ),
@@ -731,11 +858,25 @@ def procurement_step_page(plan, step_number, step_data, language="en"):
     )
 
 
-def procurement_detail_page(plan, steps=None, documents=None, language="en"):
+def procurement_detail_page(plan, steps=None, documents=None, language="en", upload_error=None):
     steps = steps or []
     documents = documents or []
     status = plan.get("status", "draft")
     current_step = plan.get("current_step", 1)
+
+    # Optional banner: when redirected back from a failed document upload,
+    # show a translated error so the user knows what went wrong (instead of
+    # silently swallowing the failure as before).
+    upload_banner = None
+    if upload_error:
+        # Map known error codes to translation keys; unknown -> generic "failed".
+        valid_codes = {"bad_extension", "too_large", "empty", "failed"}
+        code = upload_error if upload_error in valid_codes else "failed"
+        upload_banner = Div(
+            t(f"procurements.upload_error_{code}", language),
+            cls="form-banner form-banner-error",
+            style="margin-bottom:16px;",
+        )
 
     step_indicators = []
     for i, (num, step_id, step_name_et, role) in enumerate(WORKFLOW_STEPS):
@@ -833,6 +974,29 @@ def procurement_detail_page(plan, steps=None, documents=None, language="en"):
             ),
         )
 
+    # CPV codes card — read from metadata_json["cpv_codes"] (source of
+    # truth for multiple codes) with fallback to the legacy single-code
+    # column. Renders all codes as small chips so the user immediately
+    # sees what's stored (the original bug was invisible CPV data).
+    cpv_codes_list = metadata.get("cpv_codes") or (
+        [plan.get("cpv_code")] if plan.get("cpv_code") else []
+    )
+    if cpv_codes_list:
+        info_cards.append(
+            Div(
+                Div(t("procurements.field_cpv_code", language),
+                    style="font-size:11px;color:#9ca3af;text-transform:uppercase;font-weight:600;"),
+                Div(
+                    *[
+                        Span(c, style="display:inline-block;background:#eff6ff;color:#1e40af;font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;margin:2px 4px 2px 0;font-family:monospace;")
+                        for c in cpv_codes_list
+                    ],
+                    style="margin-top:4px;",
+                ),
+                cls="info-card",
+            ),
+        )
+
     return Div(
         Div(
             Div(
@@ -859,6 +1023,7 @@ def procurement_detail_page(plan, steps=None, documents=None, language="en"):
             ),
             cls="page-header",
         ),
+        upload_banner,
         # Info cards
         Div(*info_cards, cls="info-grid"),
         # Workflow stepper

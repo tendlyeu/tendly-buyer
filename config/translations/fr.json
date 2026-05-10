@@ -7,7 +7,12 @@
   },
   "sidebar": {
     "new_chat": "Nouvelle discussion",
-    "no_conversations": "Aucune conversation"
+    "no_conversations": "Aucune conversation",
+    "buyer_tools": "Outils acheteur",
+    "my_rfps": "Mes brouillons d'AO",
+    "price_benchmarks": "Comparatifs de prix",
+    "buyer_label": "Acheteur",
+    "seller_label": "Fournisseur"
   },
   "welcome": {
     "title": "Bonjour, je suis votre acheteur public IA",
@@ -184,7 +189,21 @@
     "role_domain_lead": "Responsable du domaine",
     "role_procurement_manager": "Responsable des achats",
     "role_board": "Conseil",
-    "role_domain_specialist": "Spécialiste du domaine"
+    "role_domain_specialist": "Spécialiste du domaine",
+    "required_hint": "Les champs marqués d'un * sont obligatoires.",
+    "required_field": "Champ obligatoire",
+    "cpv_placeholder": "ex. 72000000 ou 72000000, 72200000",
+    "cpv_format_hint": "Huit chiffres par code ; séparez plusieurs codes par des virgules.",
+    "cpv_help": "Un ou plusieurs codes CPV à 8 chiffres séparés par des virgules.",
+    "cpv_invalid_codes": "Codes CPV invalides : {codes}. Chaque code doit comporter exactement 8 chiffres.",
+    "cpv_required": "Le code CPV est obligatoire.",
+    "title_required": "Le titre est obligatoire.",
+    "fix_errors_above": "Veuillez corriger les erreurs ci-dessus et réessayer.",
+    "upload_error_bad_extension": "Type de fichier non autorisé. Utilisez PDF, DOCX, XLSX ou autres formats supportés.",
+    "upload_error_too_large": "Fichier trop volumineux. Taille maximale : 10 Mo.",
+    "upload_error_empty": "Le fichier est vide.",
+    "upload_error_failed": "Téléchargement échoué. Veuillez réessayer.",
+    "no_documents_to_review": "Téléchargez au moins un document pour lancer la révision IA."
   },
   "create_plan": {
     "created": "Créé",
@@ -206,5 +225,60 @@
   },
   "documents": {
     "file_label": "Fichier (PDF, DOCX, XLSX, TXT, CSV — max 10 Mo)"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "procurements": "Marchés",
+    "documents": "Documents",
+    "registry": "Registre",
+    "chat": "Chat IA",
+    "team": "Équipe"
+  },
+  "dashboard": {
+    "page_title": "Tableau de bord — Tendly Acheteur",
+    "title": "Tableau de bord",
+    "subtitle": "Aperçu de votre activité d'achat",
+    "active_plans": "Plans actifs",
+    "pending_approval": "En attente d'approbation",
+    "completed": "Terminés",
+    "documents": "Documents",
+    "recent_plans": "Plans de marché récents",
+    "view_all": "Voir tout",
+    "no_plans": "Aucun plan de marché pour le moment",
+    "create_first": "Créez votre premier plan de marché",
+    "quick_actions": "Actions rapides",
+    "new_procurement": "Nouveau marché",
+    "ask_ai": "Demander à l'IA",
+    "browse_registry": "Parcourir le registre"
+  },
+  "team": {
+    "page_title": "Équipe — Tendly Acheteur",
+    "title": "Équipe",
+    "subtitle": "Gérez l'accès de l'équipe",
+    "empty": "Aucun membre dans l'équipe",
+    "coming_soon": "Bientôt disponible",
+    "coming_soon_title": "La gestion d'équipe arrive bientôt",
+    "coming_soon_body": "Nous travaillons à vous permettre d'inviter des membres, d'attribuer des rôles et de collaborer sur les marchés.",
+    "add_member": "Ajouter un membre",
+    "add": "Ajouter",
+    "members": "Membres"
+  },
+  "review": {
+    "title": "Revue de document IA",
+    "run_review": "Lancer la revue IA",
+    "rerun_review": "Relancer la revue",
+    "view_review": "Voir la revue",
+    "analyzing": "Analyse des documents...",
+    "quality_score": "Score de qualité",
+    "completeness": "Complétude",
+    "compliance": "Conformité",
+    "clarity": "Clarté",
+    "issues": "Problèmes",
+    "missing": "Manquant",
+    "suggestions": "Suggestions",
+    "no_documents": "Téléchargez au moins un document pour lancer la revue IA.",
+    "summary": "Résumé",
+    "reviewed_at": "Révisé le",
+    "documents_analyzed": "documents analysés"
   }
 }
