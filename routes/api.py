@@ -64,6 +64,28 @@ def register_api_routes(rt, chat_service):
 
         if not conversation_id:
             conversation_id = chat_service.create_conversation(user_email=user_email)
+        else:
+            # Verify the caller owns this conversation (or it's anonymous and
+            # the caller is anonymous). Reject otherwise — without this,
+            # knowing a conversation_id lets any logged-in user post into
+            # someone else's conversation and read leaked plan context.
+            existing = chat_service.get_conversation(conversation_id, user_email=user_email)
+            if existing is None:
+                # Fallback: maybe the conversation row doesn't exist yet
+                # (the client generated an ID locally before the first turn
+                # was persisted). Re-create owned by this caller.
+                from chat_service import ChatContext, get_tendly_session
+                _sess = get_tendly_session()
+                try:
+                    _row = _sess.query(ChatContext).filter(
+                        ChatContext.conversation_id == conversation_id
+                    ).first()
+                finally:
+                    _sess.close()
+                if _row is not None:
+                    # Row exists but not owned by caller — refuse and start a
+                    # fresh conversation instead of leaking the other tenant.
+                    conversation_id = chat_service.create_conversation(user_email=user_email)
 
         # Check rate limits
         rate_result = check_rate_limit(request, user_email)
@@ -144,6 +166,13 @@ def register_api_routes(rt, chat_service):
 
         if not uploaded or not hasattr(uploaded, "filename") or not uploaded.filename:
             return JSONResponse({"ok": False, "error": "no_file"}, status_code=400)
+        # Reject pathological filenames before we touch the filesystem (avoids
+        # leaking the absolute upload directory path in a 500 error).
+        if len(uploaded.filename) > 255:
+            return JSONResponse({
+                "ok": False, "error": "bad_file",
+                "message": "Filename is too long (max 255 characters).",
+            }, status_code=400)
         # If the user attaches a file as their first action (no chat sent yet,
         # so the JS doesn't have an activeConversationId), spin up a new
         # conversation here so the file has somewhere to live.
@@ -195,7 +224,10 @@ def register_api_routes(rt, chat_service):
         except ValueError as e:
             return JSONResponse({"ok": False, "error": "bad_file", "message": str(e)}, status_code=400)
         except Exception as e:
-            return JSONResponse({"ok": False, "error": "upload_failed", "message": str(e)}, status_code=500)
+            # Avoid leaking server filesystem paths or internal exception
+            # details. Log them server-side and return a generic message.
+            print(f"chat attach upload_failed: {e}")
+            return JSONResponse({"ok": False, "error": "upload_failed", "message": "Upload failed. Please try a different file."}, status_code=500)
 
         doc = add_document(
             title=uploaded.filename,
@@ -324,8 +356,10 @@ def register_api_routes(rt, chat_service):
         if is_tender_saved(user_email, tender_id):
             return JSONResponse({"ok": True, "already_saved": True})
 
-        # Fetch tender data snapshot
+        # Fetch tender data snapshot — reject unknown tender ids (empty dict)
         tender_data = get_tender_data_for_save(tender_id)
+        if not tender_data:
+            return JSONResponse({"error": "Tender not found"}, status_code=404)
 
         success = save_tender(
             user_email=user_email,

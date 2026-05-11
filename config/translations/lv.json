@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Tendly Chat - AI iepirkumu izlūkošana",
+    "title": "Tendly Buyer - Iepirkumu portāls",
     "name": "Tendly",
     "chat": "Čats",
     "powered_by": "Powered by Tendly"
@@ -104,7 +104,7 @@
     "login_prompt_text": "Pieslēdzieties savam Tendly kontam, lai saglabātu iepirkumus konveijrā un sekotu tiem līdzi.",
     "login_button": "Pieslēgties",
     "signup_button": "Reģistrēties",
-    "login_page_title": "Pieteikties — Tendly Chat",
+    "login_page_title": "Pieteikties — Tendly Buyer",
     "login_title": "Laipni lūdzam atpakaļ",
     "login_subtitle": "Piesakieties savā Tendly kontā, lai piekļūtu visām funkcijām",
     "email_label": "E-pasts",
@@ -115,8 +115,20 @@
     "login_error_missing": "Lūdzu, ievadiet gan e-pastu, gan paroli.",
     "login_error_inactive": "Jūsu konts ir neaktīvs. Lūdzu, sazinieties ar atbalstu.",
     "no_account": "Nav konta?",
-    "back_to_chat": "Atpakaļ uz sarunu",
-    "logout": "Izrakstīties"
+    "back_to_chat": "Atpakaļ uz sākumu",
+    "logout": "Izrakstīties",
+    "signup_title": "Izveidojiet savu kontu",
+    "signup_subtitle": "Pievienojieties Tendly Buyer, lai pārvaldītu savus iepirkumus",
+    "name_label": "Pilns vārds",
+    "name_placeholder": "Ievadiet savu pilno vārdu",
+    "company_label": "Uzņēmums / Organizācija",
+    "company_placeholder": "Ievadiet sava uzņēmuma nosaukumu",
+    "confirm_password_label": "Apstipriniet paroli",
+    "confirm_password_placeholder": "Ievadiet paroli vēlreiz",
+    "password_mismatch": "Paroles nesakrīt",
+    "email_exists": "Konts ar šādu e-pastu jau pastāv",
+    "signup_submit": "Izveidot kontu",
+    "have_account": "Jau ir konts?"
   },
   "pipeline": {
     "saved": "Saglabāts konveijrā",

@@ -116,6 +116,16 @@ def register_procurement_routes(rt, chat_service):
         elif cpv_errors:
             errors["cpv_code"] = "cpv_invalid_codes"
 
+        estimated_value_raw = form.get("estimated_value", "")
+        estimated_value_parsed = None
+        if estimated_value_raw and str(estimated_value_raw).strip():
+            try:
+                estimated_value_parsed = float(estimated_value_raw)
+                if estimated_value_parsed < 0:
+                    errors["estimated_value"] = "estimated_value_invalid"
+            except (TypeError, ValueError):
+                errors["estimated_value"] = "estimated_value_invalid"
+
         if errors:
             # Re-render new-plan form with submitted values + inline errors
             plan_draft = {
@@ -160,7 +170,7 @@ def register_procurement_routes(rt, chat_service):
             title=title,
             description=form.get("description", ""),
             category=form.get("category", "muu"),
-            estimated_value=form.get("estimated_value") or None,
+            estimated_value=estimated_value_parsed,
             cpv_code=cpv_first,
             fiscal_year=int(form.get("fiscal_year") or 2026),
             procurement_method=form.get("procurement_method", "open"),

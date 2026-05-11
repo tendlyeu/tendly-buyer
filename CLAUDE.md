@@ -162,6 +162,72 @@ The chat service uses Together AI (Kimi) by default for both query parsing (stru
 
 ---
 
+## Persona-Based Testing
+
+### Overview
+
+Testing uses persona-driven scenarios rather than button-by-button functional tests. Each persona represents a real user archetype derived from discovery meetings with AS Hoolekandeteenused (our design partner) and other clients. Tests are executed via Playwright interacting with Google Chrome (debug profile on port 9222).
+
+### Design Partner Context
+
+**AS Hoolekandeteenused** is a state-owned social welfare company (reg. 10399457) providing 24/7 care services to ~1800 adults with psychological special needs across 69 service units in Estonia. ~840 employees. They are Tendly Buyer's pilot/design partner. Their procurement covers IT equipment, real estate maintenance, transport, hygiene supplies, catering, software, and care-related services. Thresholds start at €10,000 (stricter than legally required).
+
+Key contacts:
+- **Ragnar Vaiknemets** — Board Chairman, proposed the design partnership
+- **Maarius Kastemäe** — Admin manager, initiated contact, primary product feedback channel
+- **Eve Jõesaar** — Procurement manager, daily user, the person who actually prepares tenders
+- **Reet Hein** — Procurement team, has suitable tenders for testing
+
+Their current tools: Microsoft CoPilot/GoPilot, Excel (requirements lists), SharePoint (document collaboration), Delta (formal document approval). CoPilot limitations: weak search (Bing-based), shallow document reading ("reads first page to save tokens"), hallucination, poor integration with Riigihangete Register.
+
+### Persona Files
+
+All personas are in the `personas/` directory:
+
+| File | Persona | Role | Tech Level | Primary Test Focus |
+|------|---------|------|------------|-------------------|
+| `eve-hankejuht.md` | Eve Jõesaar | Procurement Manager (Hankejuht) | Moderate | Core workflow: search similar tenders, draft specs, price benchmarking, contract review |
+| `andres-valdkonnajuht.md` | Andres Tamm | Field/Domain Manager (Valdkonna juht) | Low | First-time user experience, vague queries, hand-holding, Estonian-only UX |
+| `ragnar-juhatus.md` | Ragnar Vaiknemets | Board Chairman (Juhatus) | Low | Dashboard/plan overview, budget validation, first impressions |
+| `marika-spetsialist.md` | Marika Lepp | IT Domain Specialist | High | Technical spec generation, vendor neutrality, bid evaluation |
+| `maarius-haldus.md` | Maarius Kastemäe | Administrative Manager | Good | Market intelligence, sector benchmarking, strategic queries, design partner evaluation |
+| `vallo-sceptic.md` | Vallo Orgusaar | Sceptical external buyer | Low | Trust-building, minimal-input queries, 30-second first impression, data verification |
+
+### How to Run Persona Tests
+
+Each persona file contains:
+1. **Background** — who they are, what they do, their organisation
+2. **Pain points** — what problems they need the product to solve
+3. **Typical queries** — realistic queries they would type (mostly in Estonian)
+4. **Test scenarios** — specific scenarios with goals, expected behaviour, success criteria, and failure indicators
+5. **Behaviour patterns** — how they interact with technology
+
+**Testing approach:**
+1. Read the persona file before starting the test
+2. Adopt the persona's mindset, tech level, and language
+3. Execute the test scenarios in order
+4. For each scenario, evaluate against both success criteria AND failure indicators
+5. Note where the product fails the persona's expectations — these are real UX/product issues
+
+**Priority order for testing:**
+1. **Eve (Hankejuht)** — primary daily user, most scenarios, highest impact
+2. **Andres (Valdkonna juht)** — tests accessibility for low-tech users
+3. **Vallo (Sceptic)** — tests first impressions and trust-building
+4. **Marika (Spetsialist)** — tests technical depth and accuracy
+5. **Ragnar (Juhatus)** — tests dashboard/overview features
+6. **Maarius (Haldus)** — tests strategic/analytical features
+
+### Key Testing Principles
+
+- **Language**: All queries should be in Estonian. English-only responses or UI elements are bugs.
+- **Data accuracy**: Verify tender data (values, dates, authorities) against known real tenders when possible.
+- **Response quality**: AI responses should be specific and data-backed, not generic. "Prices vary" is a failure.
+- **Source attribution**: Users must be able to trace AI claims back to specific tenders. "Black box" answers fail the trust test.
+- **Speed**: First meaningful response should appear within 3-5 seconds. Vallo gives up in 10 seconds.
+- **Progressive complexity**: Each persona should be testable with increasing difficulty. Start with the simplest scenario.
+
+---
+
 ## Development Notes
 
 ### Testing

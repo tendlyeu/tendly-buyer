@@ -1,6 +1,6 @@
 #!/bin/bash
-# Tendly Chat - Development Server
-# Starts on port 5002 to avoid conflict with main tendly app (port 5001)
+# Tendly Buyer - Development Server
+# Starts on port 5004 (avoids conflict with tendly:5001, tendly-agent-chat:5002, tendly-taas:5003)
 
 cd "$(dirname "$0")"
 
@@ -25,7 +25,7 @@ if [ -f .env ]; then
 fi
 
 echo ""
-echo "Starting Tendly Chat on http://localhost:5002"
+echo "Starting Tendly Buyer on http://localhost:5004"
 echo ""
 
 # Start the server

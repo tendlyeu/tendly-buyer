@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Tendly Chat - AI wywiad zamówień publicznych",
+    "title": "Tendly Buyer - Portal zamówień publicznych",
     "name": "Tendly",
     "chat": "Czat",
     "powered_by": "Powered by Tendly"
@@ -104,7 +104,7 @@
     "login_prompt_text": "Zaloguj się na swoje konto Tendly, aby zapisywać przetargi w potoku i je śledzić.",
     "login_button": "Zaloguj się",
     "signup_button": "Zarejestruj się",
-    "login_page_title": "Zaloguj się — Tendly Chat",
+    "login_page_title": "Zaloguj się — Tendly Buyer",
     "login_title": "Witaj ponownie",
     "login_subtitle": "Zaloguj się na swoje konto Tendly, aby uzyskać dostęp do wszystkich funkcji",
     "email_label": "E-mail",
@@ -115,8 +115,20 @@
     "login_error_missing": "Wprowadź e-mail i hasło.",
     "login_error_inactive": "Twoje konto jest nieaktywne. Skontaktuj się z pomocą.",
     "no_account": "Nie masz konta?",
-    "back_to_chat": "Powrót do czatu",
-    "logout": "Wyloguj się"
+    "back_to_chat": "Powrót do strony głównej",
+    "logout": "Wyloguj się",
+    "signup_title": "Utwórz konto",
+    "signup_subtitle": "Dołącz do Tendly Buyer, aby zarządzać swoimi zamówieniami",
+    "name_label": "Imię i nazwisko",
+    "name_placeholder": "Wpisz imię i nazwisko",
+    "company_label": "Firma / Organizacja",
+    "company_placeholder": "Wpisz nazwę firmy",
+    "confirm_password_label": "Potwierdź hasło",
+    "confirm_password_placeholder": "Wpisz hasło ponownie",
+    "password_mismatch": "Hasła nie pasują do siebie",
+    "email_exists": "Konto z tym adresem e-mail już istnieje",
+    "signup_submit": "Utwórz konto",
+    "have_account": "Masz już konto?"
   },
   "pipeline": {
     "saved": "Zapisano w potoku",

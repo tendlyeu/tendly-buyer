@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Tendly Chat - Intelligence des marchés publics IA",
+    "title": "Tendly Buyer - Portail des marchés publics",
     "name": "Tendly",
     "chat": "Discussion",
     "powered_by": "Powered by Tendly"
@@ -104,7 +104,7 @@
     "login_prompt_text": "Connectez-vous à votre compte Tendly pour enregistrer des marchés dans votre pipeline et les suivre.",
     "login_button": "Se connecter",
     "signup_button": "S'inscrire",
-    "login_page_title": "Connexion — Tendly Chat",
+    "login_page_title": "Connexion — Tendly Buyer",
     "login_title": "Bon retour",
     "login_subtitle": "Connectez-vous à votre compte Tendly pour accéder à toutes les fonctionnalités",
     "email_label": "E-mail",
@@ -115,8 +115,20 @@
     "login_error_missing": "Veuillez saisir l'e-mail et le mot de passe.",
     "login_error_inactive": "Votre compte est inactif. Veuillez contacter le support.",
     "no_account": "Pas de compte ?",
-    "back_to_chat": "Retour au chat",
-    "logout": "Déconnexion"
+    "back_to_chat": "Retour à l'accueil",
+    "logout": "Déconnexion",
+    "signup_title": "Créez votre compte",
+    "signup_subtitle": "Rejoignez Tendly Buyer pour gérer vos marchés publics",
+    "name_label": "Nom complet",
+    "name_placeholder": "Entrez votre nom complet",
+    "company_label": "Entreprise / Organisation",
+    "company_placeholder": "Entrez le nom de votre entreprise",
+    "confirm_password_label": "Confirmez le mot de passe",
+    "confirm_password_placeholder": "Saisissez à nouveau votre mot de passe",
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "email_exists": "Un compte avec cet e-mail existe déjà",
+    "signup_submit": "Créer un compte",
+    "have_account": "Vous avez déjà un compte ?"
   },
   "pipeline": {
     "saved": "Enregistré dans le pipeline",

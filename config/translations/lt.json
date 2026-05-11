@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Tendly Chat - AI viešųjų pirkimų žvalgyba",
+    "title": "Tendly Buyer - Viešųjų pirkimų portalas",
     "name": "Tendly",
     "chat": "Pokalbis",
     "powered_by": "Powered by Tendly"
@@ -104,7 +104,7 @@
     "login_prompt_text": "Prisijunkite prie savo Tendly paskyros, kad galėtumėte išsaugoti konkursus konvejeryje ir juos sekti.",
     "login_button": "Prisijungti",
     "signup_button": "Registruotis",
-    "login_page_title": "Prisijungti — Tendly Chat",
+    "login_page_title": "Prisijungti — Tendly Buyer",
     "login_title": "Sveiki sugrįžę",
     "login_subtitle": "Prisijunkite prie savo Tendly paskyros, kad galėtumėte naudotis visomis funkcijomis",
     "email_label": "El. paštas",
@@ -115,8 +115,20 @@
     "login_error_missing": "Įveskite el. paštą ir slaptažodį.",
     "login_error_inactive": "Jūsų paskyra neaktyvi. Susisiekite su palaikymu.",
     "no_account": "Neturite paskyros?",
-    "back_to_chat": "Grįžti į pokalbį",
-    "logout": "Atsijungti"
+    "back_to_chat": "Grįžti į pradžią",
+    "logout": "Atsijungti",
+    "signup_title": "Sukurkite paskyrą",
+    "signup_subtitle": "Prisijunkite prie Tendly Buyer, kad valdytumėte savo pirkimus",
+    "name_label": "Vardas ir pavardė",
+    "name_placeholder": "Įveskite savo vardą ir pavardę",
+    "company_label": "Įmonė / Organizacija",
+    "company_placeholder": "Įveskite įmonės pavadinimą",
+    "confirm_password_label": "Patvirtinkite slaptažodį",
+    "confirm_password_placeholder": "Įveskite slaptažodį dar kartą",
+    "password_mismatch": "Slaptažodžiai nesutampa",
+    "email_exists": "Paskyra su šiuo el. paštu jau egzistuoja",
+    "signup_submit": "Sukurti paskyrą",
+    "have_account": "Jau turite paskyrą?"
   },
   "pipeline": {
     "saved": "Išsaugota konvejeryje",
