@@ -126,6 +126,9 @@ class CreatePlanTool(Tool):
         eval_criteria = plan_draft.get("evaluation_criteria") or []
         requirements = plan_draft.get("requirements") or []
 
+        # Get the user's language from chat_service context
+        ui_language = getattr(chat_service, "_current_ui_language", "en") if chat_service else "en"
+
         if not (eval_criteria and requirements):
             loop = asyncio.new_event_loop()
             try:
@@ -134,6 +137,7 @@ class CreatePlanTool(Tool):
                         description=description or title,
                         category=category,
                         estimated_value=estimated_value,
+                        language=ui_language or "en",
                     )
                 )
             finally:

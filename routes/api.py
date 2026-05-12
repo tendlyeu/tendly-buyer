@@ -494,6 +494,136 @@ def register_api_routes(rt, chat_service):
             request.session["auth"] = auth
         return JSONResponse({"ok": True, "role": role})
 
+    # ── DOCX Export ──────────────────────────────────────────────────
+    @rt("/api/export/docx")
+    async def post(request):
+        """Export an RFP draft as a .docx file."""
+        import io
+        from docx import Document
+        from docx.shared import Pt, Inches, Cm, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+        try:
+            rfp = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        doc = Document()
+
+        # Style setup
+        style = doc.styles["Normal"]
+        font = style.font
+        font.name = "Calibri"
+        font.size = Pt(11)
+
+        # Title
+        title = rfp.get("title", "RFP Draft")
+        heading = doc.add_heading(title, level=1)
+        heading.runs[0].font.color.rgb = RGBColor(0x25, 0x63, 0xEB)
+
+        # Metadata
+        meta_parts = []
+        if rfp.get("category"):
+            meta_parts.append(f"Category: {rfp['category']}")
+        if rfp.get("cpv_code"):
+            meta_parts.append(f"CPV: {rfp['cpv_code']}")
+        if rfp.get("procedure_type"):
+            meta_parts.append(f"Procedure: {rfp['procedure_type']}")
+        if rfp.get("estimated_value"):
+            currency = rfp.get("currency", "EUR")
+            meta_parts.append(f"Estimated value: {rfp['estimated_value']:,.0f} {currency}")
+        if meta_parts:
+            p = doc.add_paragraph(" · ".join(meta_parts))
+            p.style.font.size = Pt(10)
+            p.style.font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
+
+        sections = rfp.get("sections", {})
+
+        # Scope of work
+        scope = sections.get("scope_of_work", "")
+        if scope:
+            doc.add_heading("Scope of Work", level=2)
+            doc.add_paragraph(scope)
+
+        # Requirements
+        reqs = sections.get("requirements", "")
+        if reqs:
+            doc.add_heading("Requirements & Deliverables", level=2)
+            doc.add_paragraph(reqs)
+
+        # Evaluation criteria
+        criteria = sections.get("evaluation_criteria", [])
+        if criteria:
+            doc.add_heading("Evaluation Criteria", level=2)
+            table = doc.add_table(rows=1, cols=3)
+            table.style = "Light List Accent 1"
+            hdr = table.rows[0].cells
+            hdr[0].text = "Criterion"
+            hdr[1].text = "Weight"
+            hdr[2].text = "Description"
+            for c in criteria:
+                row = table.add_row().cells
+                row[0].text = c.get("name", "")
+                row[1].text = f"{c.get('weight', '')}%"
+                row[2].text = c.get("description", "")
+
+        # Qualification requirements
+        quals = sections.get("qualification_requirements", [])
+        if quals:
+            doc.add_heading("Qualification Requirements", level=2)
+            for q in quals:
+                req = q.get("requirement", "")
+                req_type = q.get("type", "")
+                evidence = q.get("evidence", "")
+                p = doc.add_paragraph(style="List Bullet")
+                run = p.add_run(req)
+                if req_type:
+                    p.add_run(f"  [{req_type}]").font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
+                if evidence:
+                    p.add_run(f"\n  Evidence: {evidence}").font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
+
+        # Contract terms
+        terms = sections.get("contract_terms", "")
+        if terms:
+            doc.add_heading("Contract Terms", level=2)
+            doc.add_paragraph(terms)
+
+        # Submission instructions
+        sub = sections.get("submission_instructions", "")
+        if sub:
+            doc.add_heading("Submission Instructions", level=2)
+            doc.add_paragraph(sub)
+
+        # Timeline
+        timeline = sections.get("timeline", {})
+        if timeline:
+            doc.add_heading("Timeline", level=2)
+            table = doc.add_table(rows=0, cols=2)
+            table.style = "Light List Accent 1"
+            for k, v in timeline.items():
+                row = table.add_row().cells
+                row[0].text = k.replace("_", " ").title()
+                row[1].text = str(v)
+
+        # Compliance notes
+        notes = rfp.get("compliance_notes", [])
+        if notes:
+            doc.add_heading("Compliance Notes", level=2)
+            for n in notes:
+                doc.add_paragraph(n, style="List Bullet")
+
+        # Save to buffer
+        buf = io.BytesIO()
+        doc.save(buf)
+        buf.seek(0)
+
+        filename = (rfp.get("title") or "rfp-draft").lower().replace(" ", "-") + ".docx"
+        return Response(
+            content=buf.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
     @rt("/set-language/{lang}")
     def get(request, lang: str):
         if lang not in SUPPORTED_LANGUAGES:

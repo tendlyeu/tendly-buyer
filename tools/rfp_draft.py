@@ -129,6 +129,10 @@ class RfpDraftTool(Tool):
         from services.rfp_generator import RfpGeneratorService
         service = RfpGeneratorService()
 
+        # Get the user's language from chat_service context
+        chat_service = context.get("chat_service")
+        ui_language = getattr(chat_service, "_current_ui_language", "en") if chat_service else "en"
+
         # Pass a doc-type hint into the description so the generator
         # knows whether to focus on tech-spec, contract, methodology
         # or ESPD. Without this hint every "draft X" request produced
@@ -145,6 +149,7 @@ class RfpDraftTool(Tool):
                     description=gen_description,
                     category=category,
                     estimated_value=estimated_value,
+                    language=ui_language or "en",
                 )
             )
         finally:

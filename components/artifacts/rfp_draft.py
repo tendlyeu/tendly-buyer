@@ -11,6 +11,64 @@ PRIORITY_COLORS = {
     "financial": ("#16a34a", "#f0fdf4"),
 }
 
+# Section title translations for the artifact panel
+_SECTION_TITLES = {
+    "en": {
+        "scope": "Scope of Work",
+        "requirements": "Requirements & Deliverables",
+        "evaluation": "Evaluation Criteria",
+        "qualification": "Qualification Requirements",
+        "contract": "Contract Terms",
+        "timeline": "Timeline",
+        "compliance": "Compliance Notes",
+        "copy": "Copy",
+        "download_md": "Download .md",
+        "download_docx": "Download .docx",
+    },
+    "et": {
+        "scope": "Hanke ulatus",
+        "requirements": "Nõuded ja tulemid",
+        "evaluation": "Hindamiskriteeriumid",
+        "qualification": "Kvalifitseerimisnõuded",
+        "contract": "Lepingutingimused",
+        "timeline": "Ajakava",
+        "compliance": "Vastavusmärkused",
+        "copy": "Kopeeri",
+        "download_md": "Lae alla .md",
+        "download_docx": "Lae alla .docx",
+    },
+    "lv": {
+        "scope": "Darba apjoms",
+        "requirements": "Prasības un rezultāti",
+        "evaluation": "Vērtēšanas kritēriji",
+        "qualification": "Kvalifikācijas prasības",
+        "contract": "Līguma noteikumi",
+        "timeline": "Laika grafiks",
+        "compliance": "Atbilstības piezīmes",
+        "copy": "Kopēt",
+        "download_md": "Lejupielādēt .md",
+        "download_docx": "Lejupielādēt .docx",
+    },
+    "lt": {
+        "scope": "Darbo apimtis",
+        "requirements": "Reikalavimai ir rezultatai",
+        "evaluation": "Vertinimo kriterijai",
+        "qualification": "Kvalifikacijos reikalavimai",
+        "contract": "Sutarties sąlygos",
+        "timeline": "Tvarkaraštis",
+        "compliance": "Atitikties pastabos",
+        "copy": "Kopijuoti",
+        "download_md": "Atsisiųsti .md",
+        "download_docx": "Atsisiųsti .docx",
+    },
+}
+
+
+def _get_section_title(key: str, language: str = "en") -> str:
+    """Get translated section title, falling back to English."""
+    titles = _SECTION_TITLES.get(language, _SECTION_TITLES["en"])
+    return titles.get(key, _SECTION_TITLES["en"].get(key, key))
+
 
 def _rfp_to_markdown(rfp: dict) -> str:
     """Flatten the RFP dict into a copy-pastable Markdown string."""
@@ -89,14 +147,20 @@ def rfp_draft_panel(data: dict, language: str = "en"):
     rfp = data.get("rfp") or {}
     sections = []
 
-    # Action bar: Copy + Download (so the user can actually USE the
-    # generated draft instead of just looking at it).
+    # Action bar: Copy + Download .md + Download .docx (so the user can
+    # actually USE the generated draft instead of just looking at it).
     rfp_md = _rfp_to_markdown(rfp)
     rfp_md_js = _json.dumps(rfp_md)
     title_for_file = (rfp.get("title") or "rfp-draft").lower().replace(" ", "-")
+    rfp_json_js = _json.dumps(rfp)
+
+    copy_label = _get_section_title("copy", language)
+    dl_md_label = _get_section_title("download_md", language)
+    dl_docx_label = _get_section_title("download_docx", language)
+
     action_bar = Div(
         Button(
-            "Copy",
+            copy_label,
             type="button",
             cls="btn-secondary",
             style="font-size:12px;padding:5px 12px;",
@@ -109,7 +173,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
             ),
         ),
         Button(
-            "Download .md",
+            dl_md_label,
             type="button",
             cls="btn-secondary",
             style="font-size:12px;padding:5px 12px;",
@@ -121,8 +185,22 @@ def rfp_draft_panel(data: dict, language: str = "en"):
                 f"document.body.removeChild(a);URL.revokeObjectURL(u);}})()"
             ),
         ),
+        Button(
+            dl_docx_label,
+            type="button",
+            cls="btn-secondary",
+            style="font-size:12px;padding:5px 12px;background:#2563eb;color:white;border-color:#2563eb;",
+            onclick=(
+                f"(function(){{var d={rfp_json_js};"
+                f"fetch('/api/export/docx',{{method:'POST',headers:{{'Content-Type':'application/json'}},"
+                f"body:JSON.stringify(d)}}).then(function(r){{return r.blob();}}).then(function(b){{"
+                f"var u=URL.createObjectURL(b);var a=document.createElement('a');"
+                f"a.href=u;a.download='{title_for_file}.docx';document.body.appendChild(a);a.click();"
+                f"document.body.removeChild(a);URL.revokeObjectURL(u);}});}})();"
+            ),
+        ),
         Span("", id="rfp-copy-status", style="font-size:12px;color:#16a34a;align-self:center;"),
-        style="display:flex;gap:8px;padding:8px 20px;border-bottom:1px solid #f3f4f6;background:#fafafa;",
+        style="display:flex;gap:8px;padding:8px 20px;border-bottom:1px solid #f3f4f6;background:#fafafa;flex-wrap:wrap;",
     )
     sections.append(action_bar)
 
@@ -137,7 +215,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
             style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;",
         ),
         *(
-            [Div(f"Estimated: £{rfp['estimated_value']:,.0f}", style="font-size:13px;font-weight:600;color:#16a34a;")]
+            [Div(f"Estimated: €{rfp['estimated_value']:,.0f}", style="font-size:13px;font-weight:600;color:#16a34a;")]
             if rfp.get("estimated_value") else []
         ),
         cls="detail-section",
@@ -149,7 +227,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
     scope = rfp_sections.get("scope_of_work", "")
     if scope:
         sections.append(Div(
-            Div("Scope of Work", cls="detail-section-title"),
+            Div(_get_section_title("scope", language), cls="detail-section-title"),
             P(scope, style="font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap;"),
             cls="detail-section",
         ))
@@ -158,7 +236,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
     requirements = rfp_sections.get("requirements", "")
     if requirements:
         sections.append(Div(
-            Div("Requirements & Deliverables", cls="detail-section-title"),
+            Div(_get_section_title("requirements", language), cls="detail-section-title"),
             P(requirements, style="font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap;"),
             cls="detail-section",
         ))
@@ -186,7 +264,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
                 style="margin-bottom:10px;",
             ))
         sections.append(Div(
-            Div("Evaluation Criteria", cls="detail-section-title"),
+            Div(_get_section_title("evaluation", language), cls="detail-section-title"),
             *crit_items,
             cls="detail-section",
         ))
@@ -211,7 +289,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
                 style="padding:8px;border:1px solid #f3f4f6;border-radius:8px;margin-bottom:6px;",
             ))
         sections.append(Div(
-            Div("Qualification Requirements", cls="detail-section-title"),
+            Div(_get_section_title("qualification", language), cls="detail-section-title"),
             *qual_items,
             cls="detail-section",
         ))
@@ -220,7 +298,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
     terms = rfp_sections.get("contract_terms", "")
     if terms:
         sections.append(Div(
-            Div("Contract Terms", cls="detail-section-title"),
+            Div(_get_section_title("contract", language), cls="detail-section-title"),
             P(terms, style="font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap;"),
             cls="detail-section",
         ))
@@ -237,7 +315,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
                 style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #f3f4f6;",
             ))
         sections.append(Div(
-            Div("Timeline", cls="detail-section-title"),
+            Div(_get_section_title("timeline", language), cls="detail-section-title"),
             *tl_items,
             cls="detail-section",
         ))
@@ -250,7 +328,7 @@ def rfp_draft_panel(data: dict, language: str = "en"):
             for n in notes[:6]
         ]
         sections.append(Div(
-            Div("Compliance Notes", cls="detail-section-title"),
+            Div(_get_section_title("compliance", language), cls="detail-section-title"),
             Ul(*note_items, style="padding-left:16px;"),
             cls="detail-section",
         ))
