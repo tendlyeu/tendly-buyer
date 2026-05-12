@@ -117,8 +117,17 @@ When the user says things like "create a plan", "start a procurement",
 "loo plaan", "uus hange" → classify as "create_plan" and put the full
 description in rfp_description plus any structured fields you can extract
 (estimated_value, industry, cpv_divisions). When the user says "draft an
-RFP" or "generate the document" without asking to create the plan, use
-"rfp_draft" instead.
+RFP", "generate the document", "write a technical specification",
+"help me with procurement documents", "koosta dokument", "tee tehniline
+kirjeldus", or asks directly for a document without mentioning plan
+creation, use "rfp_draft" instead — do NOT force plan creation first.
+
+IMPORTANT: If the user's first message is a general request like
+"help me procure software" or "I need to buy IT equipment", ask ONE
+clarifying question about what they need, then let THEM decide
+whether to create a full plan or just generate a document directly.
+Do NOT automatically start the 10-step plan creation flow unless the
+user explicitly asks for a plan.
 
 For create_plan, the platform currently supports **ESTONIAN public
 procurement only**. When you fill plan_draft, default country to "EE",
@@ -1228,25 +1237,11 @@ class TendlyChatService:
         # filled in afterwards (e.g. evaluation criteria added on the
         # plan detail page) was invisible to the LLM (#1180).
         self._fresh_plan_primer = ""
-        if not linked_plan_id and user_email:
-            # No explicit /chat?plan= link, but if the user only owns
-            # one plan, assume they're talking about it. This unblocks
-            # the user who switches to chat after editing a plan via
-            # the form and asks "what evaluation criteria did I set?".
-            try:
-                from services.procurement_service import list_plans
-                plans = list_plans(organization_id=user_email) or []
-                if len(plans) == 1:
-                    linked_plan_id = plans[0].get("id")
-                    if linked_plan_id:
-                        try:
-                            self.set_conversation_metadata(
-                                conversation_id, {"plan_id": linked_plan_id},
-                            )
-                        except Exception:
-                            pass
-            except Exception:
-                pass
+        # NOTE: removed the auto-link heuristic that assumed "if the user
+        # only owns one plan, they must be talking about it".  This caused
+        # a critical bug: every new chat inherited the old plan's context,
+        # making it impossible to start a fresh procurement.  Plans are now
+        # only linked when the user explicitly navigates via /chat?plan=ID.
         if linked_plan_id:
             try:
                 self._fresh_plan_primer = self._build_plan_context_block(linked_plan_id)

@@ -54,7 +54,7 @@ from config.i18n import get_language_from_request, t
 from routes.auth_utils import get_auth_from_request, require_auth, user_owns_plan, forbidden_response
 from services.procurement_service import (
     create_plan, get_plan, list_plans, get_steps, complete_step, get_stats,
-    list_documents, add_document, get_document, delete_document,
+    list_documents, add_document, get_document, delete_document, delete_plan,
 )
 from services.file_processor import FileProcessor
 
@@ -417,6 +417,23 @@ def register_procurement_routes(rt, chat_service):
             delete_document(doc_id)
         # Return empty response for HTMX (the card is removed via hx-swap)
         return ""
+
+    @rt("/api/procurements/{plan_id}")
+    @require_auth
+    async def delete(request, plan_id: str):
+        """Delete a procurement plan and all related data."""
+        auth = get_auth_from_request(request)
+        if not user_owns_plan(plan_id, auth.get("email") if auth else None):
+            return forbidden_response(request)
+        try:
+            delete_plan(plan_id)
+        except Exception:
+            pass
+        # HTMX request → return empty string to remove the element;
+        # regular request → redirect to list page
+        if request.headers.get("hx-request"):
+            return ""
+        return RedirectResponse("/procurements", status_code=303)
 
     # --- AI Document Review ---
 

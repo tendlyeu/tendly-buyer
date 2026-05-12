@@ -92,13 +92,21 @@ class RfpGeneratorService:
                 f"values MUST be written in {lang_name}. This includes the title, "
                 f"scope_of_work, requirements, evaluation criteria names and "
                 f"descriptions, qualification requirement texts, contract terms, "
-                f"submission instructions, compliance notes — EVERYTHING. "
-                f"Only the JSON keys stay in English. "
+                f"submission instructions, compliance notes, timeline labels — "
+                f"absolutely EVERYTHING. Only the JSON property keys stay in English. "
                 f"For example, if {lang_name} is Estonian:\n"
                 f'  - criterion name: "Hind" not "Price"\n'
                 f'  - criterion name: "Kvaliteet" not "Quality"\n'
                 f'  - requirement: "Pakkuja peab omama..." not "The bidder must..."\n'
-                f'  - title: "IT-seadmete ost" not "Procurement of IT Equipment"'
+                f'  - title: "IT-seadmete ost" not "Procurement of IT Equipment"\n'
+                f'  - timeline notice_period: "30 päeva" not "30 days"\n'
+                f'  - timeline contract_start: "2025-09-01" (dates stay as ISO)\n'
+                f'  - qualification type labels: "kohustuslik" not "mandatory", '
+                f'"finantssuutlikkus" not "financial", "tehniline" not "technical"\n'
+                f'  - compliance_notes: in {lang_name}, not English\n'
+                f"\n"
+                f"ZERO English words allowed in any JSON string value. "
+                f"Double-check every value before returning."
             )
 
         return f"""Generate a complete RFP (Request for Proposal) draft based on this description.

@@ -6,10 +6,44 @@ from fasthtml.common import *
 
 PRIORITY_COLORS = {
     "mandatory": ("#dc2626", "#fef2f2"),
+    "kohustuslik": ("#dc2626", "#fef2f2"),
     "eligibility": ("#7c3aed", "#f5f3ff"),
     "technical": ("#2563eb", "#eff6ff"),
+    "tehniline": ("#2563eb", "#eff6ff"),
     "financial": ("#16a34a", "#f0fdf4"),
+    "finantssuutlikkus": ("#16a34a", "#f0fdf4"),
 }
+
+# Translations for requirement type badges
+_REQ_TYPE_LABELS = {
+    "en": {
+        "mandatory": "MANDATORY", "eligibility": "ELIGIBILITY",
+        "technical": "TECHNICAL", "financial": "FINANCIAL",
+    },
+    "et": {
+        "mandatory": "KOHUSTUSLIK", "eligibility": "SOBIVUS",
+        "technical": "TEHNILINE", "financial": "FINANTSSUUTLIKKUS",
+        "kohustuslik": "KOHUSTUSLIK", "sobivus": "SOBIVUS",
+        "tehniline": "TEHNILINE", "finantssuutlikkus": "FINANTSSUUTLIKKUS",
+    },
+}
+
+# Translations for timeline keys
+_TIMELINE_LABELS = {
+    "en": {
+        "notice_period": "Notice Period", "question_deadline": "Question Deadline",
+        "submission_deadline": "Submission Deadline", "evaluation_period": "Evaluation Period",
+        "contract_award": "Contract Award", "contract_start": "Contract Start",
+    },
+    "et": {
+        "notice_period": "Teateperiood", "question_deadline": "Küsimuste tähtaeg",
+        "submission_deadline": "Esitamise tähtaeg", "evaluation_period": "Hindamisperiood",
+        "contract_award": "Lepingu sõlmimine", "contract_start": "Lepingu algus",
+    },
+}
+
+# "Evidence:" prefix
+_EVIDENCE_LABEL = {"en": "Evidence", "et": "Tõendus", "lv": "Pierādījumi", "lt": "Įrodymai"}
 
 # Section title translations for the artifact panel
 _SECTION_TITLES = {
@@ -275,17 +309,20 @@ def rfp_draft_panel(data: dict, language: str = "en"):
     quals = rfp_sections.get("qualification_requirements", [])
     if quals:
         qual_items = []
+        evidence_label = _EVIDENCE_LABEL.get(language, "Evidence")
         for q in quals:
-            req_type = q.get("type", "eligibility")
+            req_type = q.get("type", "eligibility").lower()
             color, bg = PRIORITY_COLORS.get(req_type, ("#6b7280", "#f3f4f6"))
+            type_labels = _REQ_TYPE_LABELS.get(language, _REQ_TYPE_LABELS["en"])
+            badge_label = type_labels.get(req_type, req_type.upper())
             qual_items.append(Div(
                 Div(
-                    Span(req_type.upper(), style=f"font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;color:{color};background:{bg};"),
+                    Span(badge_label, style=f"font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;color:{color};background:{bg};"),
                     style="margin-bottom:4px;",
                 ),
                 Div(q.get("requirement", ""), style="font-size:13px;color:#111827;margin-bottom:2px;"),
                 *(
-                    [Div(f"Evidence: {q.get('evidence', '')}", style="font-size:11px;color:#6b7280;")]
+                    [Div(f"{evidence_label}: {q.get('evidence', '')}", style="font-size:11px;color:#6b7280;")]
                     if q.get("evidence") else []
                 ),
                 style="padding:8px;border:1px solid #f3f4f6;border-radius:8px;margin-bottom:6px;",
@@ -309,8 +346,9 @@ def rfp_draft_panel(data: dict, language: str = "en"):
     timeline = rfp_sections.get("timeline", {})
     if timeline:
         tl_items = []
+        tl_labels = _TIMELINE_LABELS.get(language, _TIMELINE_LABELS["en"])
         for key, val in timeline.items():
-            label = key.replace("_", " ").title()
+            label = tl_labels.get(key, key.replace("_", " ").title())
             tl_items.append(Div(
                 Span(label, style="font-size:12px;color:#6b7280;min-width:120px;"),
                 Span(str(val), style="font-size:12px;font-weight:500;color:#374151;"),

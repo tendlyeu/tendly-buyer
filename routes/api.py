@@ -508,6 +508,58 @@ def register_api_routes(rt, chat_service):
         except Exception:
             return JSONResponse({"error": "Invalid JSON"}, status_code=400)
 
+        # Detect language from the RFP content or cookie
+        lang = request.cookies.get("tendly_chat_lang", "en")
+        _DOCX_HEADINGS = {
+            "en": {
+                "scope": "Scope of Work",
+                "requirements": "Requirements & Deliverables",
+                "evaluation": "Evaluation Criteria",
+                "qualification": "Qualification Requirements",
+                "contract": "Contract Terms",
+                "submission": "Submission Instructions",
+                "timeline": "Timeline",
+                "compliance": "Compliance Notes",
+                "criterion": "Criterion",
+                "weight": "Weight",
+                "description": "Description",
+                "category": "Category",
+                "procedure": "Procedure",
+                "estimated_value": "Estimated value",
+                "evidence": "Evidence",
+                "tl_notice_period": "Notice Period",
+                "tl_question_deadline": "Question Deadline",
+                "tl_submission_deadline": "Submission Deadline",
+                "tl_evaluation_period": "Evaluation Period",
+                "tl_contract_award": "Contract Award",
+                "tl_contract_start": "Contract Start",
+            },
+            "et": {
+                "scope": "Hanke ulatus",
+                "requirements": "Nõuded ja tulemid",
+                "evaluation": "Hindamiskriteeriumid",
+                "qualification": "Kvalifitseerimisnõuded",
+                "contract": "Lepingutingimused",
+                "submission": "Esitamise juhised",
+                "timeline": "Ajakava",
+                "compliance": "Vastavusmärkused",
+                "criterion": "Kriteerium",
+                "weight": "Kaal",
+                "description": "Kirjeldus",
+                "category": "Kategooria",
+                "procedure": "Menetlus",
+                "estimated_value": "Eeldatav maksumus",
+                "evidence": "Tõendus",
+                "tl_notice_period": "Teateperiood",
+                "tl_question_deadline": "Küsimuste tähtaeg",
+                "tl_submission_deadline": "Esitamise tähtaeg",
+                "tl_evaluation_period": "Hindamisperiood",
+                "tl_contract_award": "Lepingu sõlmimine",
+                "tl_contract_start": "Lepingu algus",
+            },
+        }
+        h = _DOCX_HEADINGS.get(lang, _DOCX_HEADINGS["en"])
+
         doc = Document()
 
         # Style setup
@@ -524,14 +576,14 @@ def register_api_routes(rt, chat_service):
         # Metadata
         meta_parts = []
         if rfp.get("category"):
-            meta_parts.append(f"Category: {rfp['category']}")
+            meta_parts.append(f"{h['category']}: {rfp['category']}")
         if rfp.get("cpv_code"):
             meta_parts.append(f"CPV: {rfp['cpv_code']}")
         if rfp.get("procedure_type"):
-            meta_parts.append(f"Procedure: {rfp['procedure_type']}")
+            meta_parts.append(f"{h['procedure']}: {rfp['procedure_type']}")
         if rfp.get("estimated_value"):
             currency = rfp.get("currency", "EUR")
-            meta_parts.append(f"Estimated value: {rfp['estimated_value']:,.0f} {currency}")
+            meta_parts.append(f"{h['estimated_value']}: {rfp['estimated_value']:,.0f} {currency}")
         if meta_parts:
             p = doc.add_paragraph(" · ".join(meta_parts))
             p.style.font.size = Pt(10)
@@ -542,25 +594,25 @@ def register_api_routes(rt, chat_service):
         # Scope of work
         scope = sections.get("scope_of_work", "")
         if scope:
-            doc.add_heading("Scope of Work", level=2)
+            doc.add_heading(h["scope"], level=2)
             doc.add_paragraph(scope)
 
         # Requirements
         reqs = sections.get("requirements", "")
         if reqs:
-            doc.add_heading("Requirements & Deliverables", level=2)
+            doc.add_heading(h["requirements"], level=2)
             doc.add_paragraph(reqs)
 
         # Evaluation criteria
         criteria = sections.get("evaluation_criteria", [])
         if criteria:
-            doc.add_heading("Evaluation Criteria", level=2)
+            doc.add_heading(h["evaluation"], level=2)
             table = doc.add_table(rows=1, cols=3)
             table.style = "Light List Accent 1"
             hdr = table.rows[0].cells
-            hdr[0].text = "Criterion"
-            hdr[1].text = "Weight"
-            hdr[2].text = "Description"
+            hdr[0].text = h["criterion"]
+            hdr[1].text = h["weight"]
+            hdr[2].text = h["description"]
             for c in criteria:
                 row = table.add_row().cells
                 row[0].text = c.get("name", "")
@@ -570,7 +622,7 @@ def register_api_routes(rt, chat_service):
         # Qualification requirements
         quals = sections.get("qualification_requirements", [])
         if quals:
-            doc.add_heading("Qualification Requirements", level=2)
+            doc.add_heading(h["qualification"], level=2)
             for q in quals:
                 req = q.get("requirement", "")
                 req_type = q.get("type", "")
@@ -580,35 +632,35 @@ def register_api_routes(rt, chat_service):
                 if req_type:
                     p.add_run(f"  [{req_type}]").font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
                 if evidence:
-                    p.add_run(f"\n  Evidence: {evidence}").font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
+                    p.add_run(f"\n  {h['evidence']}: {evidence}").font.color.rgb = RGBColor(0x6B, 0x72, 0x80)
 
         # Contract terms
         terms = sections.get("contract_terms", "")
         if terms:
-            doc.add_heading("Contract Terms", level=2)
+            doc.add_heading(h["contract"], level=2)
             doc.add_paragraph(terms)
 
         # Submission instructions
         sub = sections.get("submission_instructions", "")
         if sub:
-            doc.add_heading("Submission Instructions", level=2)
+            doc.add_heading(h["submission"], level=2)
             doc.add_paragraph(sub)
 
         # Timeline
         timeline = sections.get("timeline", {})
         if timeline:
-            doc.add_heading("Timeline", level=2)
+            doc.add_heading(h["timeline"], level=2)
             table = doc.add_table(rows=0, cols=2)
             table.style = "Light List Accent 1"
             for k, v in timeline.items():
                 row = table.add_row().cells
-                row[0].text = k.replace("_", " ").title()
+                row[0].text = h.get(f"tl_{k}", k.replace("_", " ").title())
                 row[1].text = str(v)
 
         # Compliance notes
         notes = rfp.get("compliance_notes", [])
         if notes:
-            doc.add_heading("Compliance Notes", level=2)
+            doc.add_heading(h["compliance"], level=2)
             for n in notes:
                 doc.add_paragraph(n, style="List Bullet")
 

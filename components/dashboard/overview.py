@@ -59,33 +59,55 @@ def procurement_card(plan):
     if plan.get("estimated_value"):
         value_display = f"€{plan['estimated_value']:,.0f}"
 
-    return A(
+    plan_id = plan.get("id", "")
+    return Div(
         Div(
-            Div(
-                Span(plan.get("title", "Untitled"), style="font-size:14px;font-weight:600;color:#111827;"),
-                Span(
-                    status.capitalize(),
-                    style=f"font-size:11px;font-weight:600;color:white;background:{badge_color};padding:2px 8px;border-radius:4px;",
-                ),
-                style="display:flex;align-items:center;justify-content:space-between;gap:8px;",
-            ),
-            Div(
-                Span(plan.get("category", ""), style="font-size:12px;color:#6b7280;"),
-                Span(value_display, style="font-size:12px;color:#374151;font-weight:500;") if value_display else "",
-                style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;",
-            ),
-            Div(
-                Span(f"Step {plan.get('current_step', 1)}/5", style="font-size:11px;color:#9ca3af;"),
+            A(
                 Div(
-                    Div(style=f"width:{plan.get('current_step', 1) * 20}%;height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:4px;transition:width 0.3s;"),
-                    style="flex:1;height:4px;background:#f3f4f6;border-radius:4px;",
+                    Div(
+                        Span(plan.get("title", "Untitled"), style="font-size:14px;font-weight:600;color:#111827;"),
+                        Span(
+                            status.capitalize(),
+                            style=f"font-size:11px;font-weight:600;color:white;background:{badge_color};padding:2px 8px;border-radius:4px;",
+                        ),
+                        style="display:flex;align-items:center;justify-content:space-between;gap:8px;",
+                    ),
+                    Div(
+                        Span(plan.get("category", ""), style="font-size:12px;color:#6b7280;"),
+                        Span(value_display, style="font-size:12px;color:#374151;font-weight:500;") if value_display else "",
+                        style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;",
+                    ),
+                    Div(
+                        Span(f"Step {plan.get('current_step', 1)}/5", style="font-size:11px;color:#9ca3af;"),
+                        Div(
+                            Div(style=f"width:{plan.get('current_step', 1) * 20}%;height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:4px;transition:width 0.3s;"),
+                            style="flex:1;height:4px;background:#f3f4f6;border-radius:4px;",
+                        ),
+                        style="display:flex;align-items:center;gap:8px;margin-top:8px;",
+                    ),
+                    cls="procurement-card-inner",
                 ),
-                style="display:flex;align-items:center;gap:8px;margin-top:8px;",
+                href=f"/procurements/{plan_id}",
+                cls="procurement-card",
+                style="flex:1;min-width:0;",
             ),
-            cls="procurement-card-inner",
+            Button(
+                _raw('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>'),
+                type="button",
+                title="Kustuta",
+                style="background:#fef2f2;border:1px solid #fecaca;color:#ef4444;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:8px;flex-shrink:0;transition:all 0.15s;",
+                hx_delete=f"/api/procurements/{plan_id}",
+                hx_confirm="Kas oled kindel, et soovid selle hankeplaani kustutada?",
+                hx_target="closest .plan-card-wrapper",
+                hx_swap="outerHTML",
+                onclick="event.stopPropagation();event.preventDefault();",
+                onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626';this.style.borderColor='#fca5a5'",
+                onmouseout="this.style.background='#fef2f2';this.style.color='#ef4444';this.style.borderColor='#fecaca'",
+            ),
+            style="display:flex;align-items:center;gap:12px;",
         ),
-        href=f"/procurements/{plan.get('id', '')}",
-        cls="procurement-card",
+        cls="plan-card-wrapper",
+        id=f"plan-{plan_id}",
     )
 
 
