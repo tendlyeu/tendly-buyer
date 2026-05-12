@@ -180,9 +180,10 @@ def rfp_draft_panel(data: dict, language: str = "en"):
             onclick=(
                 f"(function(){{var t={rfp_md_js};"
                 f"var b=new Blob([t],{{type:'text/markdown'}});"
-                f"var u=URL.createObjectURL(b);var a=document.createElement('a');"
-                f"a.href=u;a.download='{title_for_file}.md';document.body.appendChild(a);a.click();"
-                f"document.body.removeChild(a);URL.revokeObjectURL(u);}})()"
+                f"var r=new FileReader();r.onload=function(){{"
+                f"var a=document.createElement('a');"
+                f"a.href=r.result;a.download='{title_for_file}.md';document.body.appendChild(a);a.click();"
+                f"document.body.removeChild(a);}};r.readAsDataURL(b);}})()"
             ),
         ),
         Button(
@@ -194,9 +195,10 @@ def rfp_draft_panel(data: dict, language: str = "en"):
                 f"(function(){{var d={rfp_json_js};"
                 f"fetch('/api/export/docx',{{method:'POST',headers:{{'Content-Type':'application/json'}},"
                 f"body:JSON.stringify(d)}}).then(function(r){{return r.blob();}}).then(function(b){{"
-                f"var u=URL.createObjectURL(b);var a=document.createElement('a');"
-                f"a.href=u;a.download='{title_for_file}.docx';document.body.appendChild(a);a.click();"
-                f"document.body.removeChild(a);URL.revokeObjectURL(u);}});}})();"
+                f"var r=new FileReader();r.onload=function(){{"
+                f"var a=document.createElement('a');"
+                f"a.href=r.result;a.download='{title_for_file}.docx';document.body.appendChild(a);a.click();"
+                f"document.body.removeChild(a);}};r.readAsDataURL(b);}});}})();"
             ),
         ),
         Span("", id="rfp-copy-status", style="font-size:12px;color:#16a34a;align-self:center;"),
